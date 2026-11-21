@@ -16,6 +16,7 @@ dist/
 *.sqlite
 *.sqlite-journal
 *.db
+.data/
 data/*.db
 data/*.json
 
