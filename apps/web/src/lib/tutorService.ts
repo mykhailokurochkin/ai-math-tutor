@@ -40,7 +40,6 @@ export async function processStudentStepInStore(params: {
 
   const now = new Date().toISOString();
 
-  // 1. Append student chat message
   session.chatMessages.push({
     id: `msg-stu-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     role: "student",
@@ -48,7 +47,6 @@ export async function processStudentStepInStore(params: {
     timestamp: now,
   });
 
-  // 2. Append notebook step if math expression was submitted or worked example given
   if (
     turn.verification.hasMathExpression ||
     turn.stepStatus === "WORKED_EXAMPLE_GIVEN"
@@ -81,7 +79,6 @@ export async function processStudentStepInStore(params: {
     });
   }
 
-  // 3. Update Mistakes & Skill Mastery
   const profileMistakes = db.mistakes[profile.id] ?? [];
   const profileSkills = db.skillMastery[profile.id] ?? [];
 
@@ -96,7 +93,7 @@ export async function processStudentStepInStore(params: {
       studentWrongStep:
         turn.verification.extractedEquation ?? studentMessage.trim(),
       errorCategory: errCat,
-      ruleTitle: rule?.titleUk ?? "Алгебраїчне перетворення",
+      ruleTitle: rule?.titleEn ?? "Algebraic Manipulation",
       diagnosticSummary: turn.verification.diagnosticSummary,
       status: "OPEN",
       timestamp: now,
@@ -112,7 +109,6 @@ export async function processStudentStepInStore(params: {
     turn.stepStatus === "CORRECT_INTERMEDIATE" ||
     turn.stepStatus === "CORRECT_FINAL"
   ) {
-    // Mark any OPEN mistakes on this problem as CORRECTED
     for (const m of profileMistakes) {
       if (m.problemId === activeProblem.id && m.status === "OPEN") {
         m.status = "CORRECTED";
@@ -120,7 +116,6 @@ export async function processStudentStepInStore(params: {
     }
   }
 
-  // 4. Handle Mastery completion
   if (turn.nextFsmState.phase === "MASTERED") {
     if (!session.completedProblemIds.includes(activeProblem.id)) {
       session.completedProblemIds.push(activeProblem.id);
@@ -130,7 +125,6 @@ export async function processStudentStepInStore(params: {
       (s) => s.errorCategory === activeProblem.targetSkill
     );
     if (activeProblem.isReinforcement) {
-      // Upgrade corrected mistakes for this category to VERIFIED_BY_FOLLOWUP
       for (const m of profileMistakes) {
         if (
           (m.errorCategory === activeProblem.targetSkill ||
@@ -151,7 +145,6 @@ export async function processStudentStepInStore(params: {
     }
   }
 
-  // 5. Append Tutor chat response & Harness Trace
   session.chatMessages.push({
     id: `msg-tut-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     role: "tutor",
@@ -167,7 +160,6 @@ export async function processStudentStepInStore(params: {
 
   session.traces.unshift(turn.trace);
 
-  // 6. If a follow-up REINFORCEMENT problem was generated, transition active problem to it seamlessly
   if (turn.followUpProblem) {
     if (turn.nextFsmState.wasAssisted) {
       if (!session.assistedProblemIds.includes(activeProblem.id)) {

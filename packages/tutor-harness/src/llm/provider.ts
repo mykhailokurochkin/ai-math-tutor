@@ -4,7 +4,6 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import type {
   CurriculumRule,
-  ErrorCategory,
   FSMState,
   InputClassification,
   MathProblem,
@@ -68,10 +67,6 @@ export function resolveActiveProviderInfo(): {
   };
 }
 
-/**
- * Deterministic Neuro-Symbolic Guided Response Synthesizer.
- * Used when no external LLM API key is configured (or as instant zero-latency fallback).
- */
 export function synthesizeGuidedResponse(ctx: PromptContext): string {
   const {
     problem,
@@ -83,48 +78,43 @@ export function synthesizeGuidedResponse(ctx: PromptContext): string {
     followUpProblem,
   } = ctx;
 
-  // 1. WORKED_EXAMPLE phase (after 3 failed attempts or explicit request after trying)
   if (nextFsmState.phase === "WORKED_EXAMPLE") {
     const expectedNext =
       verification.expectedNextCanonicalStep ??
       `${verification.lhsExpected.formatted} = ${verification.rhsExpected.formatted}`;
     const ruleExplanation = curriculumRule
-      ? `За правилом **«${curriculumRule.titleUk}»** ($${curriculumRule.formulaLatex}$): ${curriculumRule.ussrMethodologyNote}`
-      : `Розкриємо дужки та зведемо подібні доданки в обох частинах рівняння.`;
+      ? `By the **${curriculumRule.titleEn}** ($${curriculumRule.formulaLatex}$): ${curriculumRule.ussrMethodologyNote}`
+      : `Let's expand the parentheses and combine like terms on both sides of the equation.`;
 
     const followUpNotice = followUpProblem
-      ? `\n\nОскільки ми розібрали цей крок разом, давай одразу закріпимо тему на аналогічному рівнянні: **$${followUpProblem.equation}$**. Спробуй розкрити дужки в ньому самостійно!`
+      ? `\n\nSince we walked through this step together, let's verify your understanding on a similar follow-up problem: **$${followUpProblem.equation}$**. Try expanding the parentheses on your own!`
       : "";
 
-    return `Бачу, цей крок викликав труднощі — давай розберемо його детально!\n\nУ рівнянні **$${nextFsmState.lastValidEquation}$**:\n${ruleExplanation}\n\nОтже, правильний наступний крок виглядає так:\n$$${expectedNext}$$\nЗвідси після перенесення доданків отримуємо кінцевий корінь **$${problem.variable} = ${problem.expectedRoot}$**.${followUpNotice}`;
+    return `Let's walk through this step together so the concept is crystal clear.\n\nIn the equation **$${nextFsmState.lastValidEquation}$**:\n${ruleExplanation}\n\nTherefore, the corrected next step is:\n$$${expectedNext}$$\nIsolating the variable from here gives the solution **$${problem.variable} = ${problem.expectedRoot}$**.${followUpNotice}`;
   }
 
-  // 2. REINFORCEMENT transition (student just solved the problem after making an earlier mistake!)
   if (
     nextFsmState.phase === "REINFORCEMENT" &&
     verification.isFinalSolvedStep &&
     followUpProblem
   ) {
-    return `Чудово! Ти виправив помилку і знайшов абсолютно правильний корінь **$${problem.variable} = ${problem.expectedRoot}$**! 🎉\n\nЗа класичною методикою, щоб тема вважалася повністю засвоєною після виправлення помилки, розв'яжи схоже рівняння на це саме правило:\n$$${followUpProblem.equation}$$\nЯким буде перший крок після розкриття дужок?`;
+    return `Excellent work! You corrected the mistake and found the exact solution **$${problem.variable} = ${problem.expectedRoot}$**! 🎉\n\nTo verify understanding after correcting an error, let's practice on a similar problem targeting the same property:\n$$${followUpProblem.equation}$$\nWhat is your first step after expanding the parentheses?`;
   }
 
-  // 3. MASTERED phase (student solved cleanly or finished the reinforcement problem!)
   if (nextFsmState.phase === "MASTERED") {
     if (problem.isReinforcement) {
-      return `Браво! **$${problem.variable} = ${problem.expectedRoot}$** — абсолютно правильно! 🏆\nТи самостійно розв'язав задачу на закріплення і довів, що тему **«${problem.topicTitle.replace(" (Закріплення)", "")}»** засвоєно на 100%!`;
+      return `Outstanding! **$${problem.variable} = ${problem.expectedRoot}$** is completely correct! 🏆\nYou solved the follow-up problem independently and proved full mastery of **${problem.topicTitle.replace(" (Follow-Up Practice)", "")}**.`;
     }
-    return `Відмінно! **$${problem.variable} = ${problem.expectedRoot}$** — бездоганний розв'язок з першої спроби! 🏆 Тему зараховано до твого прогресу.`;
+    return `Spot on! **$${problem.variable} = ${problem.expectedRoot}$** — a flawless solution on the first attempt! 🏆 Your progress has been recorded.`;
   }
 
-  // 4. Student entered a valid intermediate step (e.g., 3x + 12 = 2x + 19 or x + 12 = 19)
   if (verification.hasMathExpression && verification.isEquivalentToTarget) {
     if (verification.isTrivialCopy) {
-      return `Це початкова умова рівняння **$${problem.equation}$**. Яку дію виконаємо першою, щоб спростити його?`;
+      return `That is the starting equation **$${problem.equation}$**. What operation should we perform first to simplify it?`;
     }
-    return `Правильний крок! Рівняння **$${verification.extractedEquation}$** записано бездоганно. Що зробимо далі, щоб зібрати доданки з $${problem.variable}$ в одній частині, а числа — в іншій?`;
+    return `Good step! **$${verification.extractedEquation}$** is algebraically equivalent. What is your next step to isolate $${problem.variable}$?`;
   }
 
-  // 5. Student asked to give up ("просто скажи відповідь") on attempts 1..3
   if (classification === "GIVE_UP_REQUEST") {
     const socraticHint = buildSafeSocraticFallback(
       problem,
@@ -132,17 +122,16 @@ export function synthesizeGuidedResponse(ctx: PromptContext): string {
       nextFsmState.hintLevel || 1,
       nextFsmState.activeErrorCategory
     );
-    return `Я розумію, що хочеться одразу дізнатися відповідь, але справжній математик знаходить її сам! Давай я підкажу наступний крок (Підказка ${nextFsmState.hintLevel}/3).\n\n${socraticHint}`;
+    return `I won't give away the final answer right away — working through the step yourself builds real mathematical intuition! Here is a guiding hint (Hint ${nextFsmState.hintLevel}/3):\n\n${socraticHint}`;
   }
 
-  // 6. Student replied with a sub-step value or conceptual message during Socratic guidance (e.g., "12" or "треба помножити 3 на 4")
   if (!verification.hasMathExpression) {
     const expectedB = Math.abs(verification.lhsExpected.b);
     if (
       studentMessage.includes(String(expectedB)) &&
       nextFsmState.activeErrorCategory === "DISTRIBUTIVE_PROPERTY"
     ) {
-      return `Точно! Добуток дорівнює **$${expectedB}$**. Тепер підстав це число в ліву частину і запиши повне виправлене рівняння зі знаком \`=\`.`;
+      return `Exactly right! That product equals **$${expectedB}$**. Now substitute that value into the left side and write out the complete corrected equation with \`=\`.`;
     }
 
     return buildSafeSocraticFallback(
@@ -153,7 +142,6 @@ export function synthesizeGuidedResponse(ctx: PromptContext): string {
     );
   }
 
-  // 7. Student made an algebraic mistake -> Socratic Guidance (L1 / L2 / L3)
   return buildSafeSocraticFallback(
     problem,
     verification,
@@ -164,10 +152,6 @@ export function synthesizeGuidedResponse(ctx: PromptContext): string {
   );
 }
 
-/**
- * Generates tutor response using configured LLM via Vercel AI SDK,
- * with automatic fallback to deterministic Neuro-Symbolic Guided Engine.
- */
 export async function generateTutorResponse(
   ctx: PromptContext
 ): Promise<{ text: string; providerLabel: string }> {
@@ -204,7 +188,7 @@ Expected RHS Expanded: ${ctx.verification.rhsExpected.formatted}
 Student LHS Expanded: ${ctx.verification.lhsStudent?.formatted ?? "N/A"}
 Student RHS Expanded: ${ctx.verification.rhsStudent?.formatted ?? "N/A"}
 Target Root (HIDDEN FROM STUDENT unless WORKED_EXAMPLE/MASTERED): ${ctx.problem.variable} = ${ctx.problem.expectedRoot}
-${ctx.curriculumRule ? `USSR Curriculum Rule: ${ctx.curriculumRule.titleUk} ($${ctx.curriculumRule.formulaLatex}$) — ${ctx.curriculumRule.ussrMethodologyNote}` : ""}
+${ctx.curriculumRule ? `USSR Curriculum Rule: ${ctx.curriculumRule.titleEn} ($${ctx.curriculumRule.formulaLatex}$) — ${ctx.curriculumRule.ussrMethodologyNote}` : ""}
 ${ctx.followUpProblem ? `Generated Isomorphic Follow-Up Problem to present NOW: ${ctx.followUpProblem.equation}` : ""}
 </HIDDEN_SYMBOLIC_SCRATCHPAD>
 

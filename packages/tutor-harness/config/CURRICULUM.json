@@ -1,56 +1,56 @@
 {
-  "curriculumTitle": "Алгебра · 6-7 клас (Класична школа Кісельова / Макаричева)",
+  "curriculumTitle": "Grade 7 Algebra · Classical USSR Curriculum (Kiselev / Makarychev)",
   "rules": [
     {
       "id": "RULE_DISTRIBUTIVE",
       "errorCategory": "DISTRIBUTIVE_PROPERTY",
-      "titleUk": "Розподільний закон множення (Розкриття дужок)",
+      "titleUk": "Distributive Property of Multiplication",
       "titleEn": "Distributive Property of Multiplication",
       "formulaLatex": "a(b + c) = ab + ac",
-      "ussrMethodologyNote": "За методикою Кісельова: щоб помножити число на суму, потрібно помножити це число на кожний доданок у дужках окремо і результати додати. Типова помилка учнів — множення лише на перший доданок.",
+      "ussrMethodologyNote": "Kiselev's Elementary Algebra: To multiply a factor by a sum in parentheses, multiply that factor by every term inside the parentheses individually and add the products. A common mistake is multiplying only the first term.",
       "socraticHints": {
-        "level1": "Згадай розподільний закон множення $a(b + c) = ab + ac$. Коли перед дужками стоїть множник, на які доданки всередині дужок він має діяти?",
-        "level2Template": "Подивись уважно на ліву частину рівняння. Розкриваючи дужки, ти помножив множник перед дужками на перший доданок ($x$), але другий доданок у дужках залишився без змін. На що ще потрібно помножити число перед дужками?",
-        "level3Template": "Давай зробимо це покроково: перший доданок після розкриття дужок правильний, а тепер помнож число перед дужками на вільний доданок у дужках і запиши виправлене рівняння."
+        "level1": "Recall the distributive property of multiplication $a(b + c) = ab + ac$. When a number stands outside the parentheses, which terms inside must it multiply?",
+        "level2Template": "Look closely at the left side of the equation. When expanding the brackets, you multiplied the outside factor by the first term ($x$), but left the second term unchanged. What else must be multiplied?",
+        "level3Template": "Let's do it step by step: your first term after expanding is correct. Now multiply the factor outside the brackets by the constant term inside, and write the corrected equation."
       }
     },
     {
       "id": "RULE_TRANSPOSITION",
       "errorCategory": "SIGN_FLIP_OR_TRANSPOSITION",
-      "titleUk": "Перенесення доданків через знак рівності",
+      "titleUk": "Transposition of Terms Across Equality",
       "titleEn": "Transposition of Terms Across Equality",
       "formulaLatex": "A + B = C \\implies A = C - B",
-      "ussrMethodologyNote": "При перенесенні будь-якого доданка з однієї частини рівняння в іншу його знак обов'язково змінюється на протилежний (плюс на мінус, мінус на плюс).",
+      "ussrMethodologyNote": "When moving any term from one side of an equation to the other across '=', its sign must be reversed (plus becomes minus, minus becomes plus).",
       "socraticHints": {
-        "level1": "Згадай правило перенесення доданків із однієї частини рівняння в іншу. Що відбувається зі знаком доданка, коли він «перестрибує» через знак `=`?",
-        "level2Template": "Перевір знаки доданків, які ти переніс через знак рівності. Один із них зберіг свій старий знак замість того, щоб змінити його на протилежний.",
-        "level3Template": "Зміни знак перенесеного доданка на протилежний і перерахуй цю частину рівняння."
+        "level1": "Recall the rule for moving terms across the equals sign. What happens to the sign of a term when it moves to the other side of `=`?",
+        "level2Template": "Check the signs of the terms you moved across the equality sign. One of them kept its original sign instead of reversing it.",
+        "level3Template": "Reverse the sign of the transposed term and recalculate that side of the equation."
       }
     },
     {
       "id": "RULE_LIKE_TERMS",
       "errorCategory": "COMBINE_LIKE_TERMS",
-      "titleUk": "Зведення подібних доданків",
+      "titleUk": "Combining Like Terms",
       "titleEn": "Combining Like Terms",
       "formulaLatex": "ax + bx = (a + b)x",
-      "ussrMethodologyNote": "Щоб звести подібні доданки, треба скласти їхні числові коефіцієнти і результат помножити на спільну буквену частину.",
+      "ussrMethodologyNote": "To combine like terms, add or subtract their numerical coefficients and attach the common variable part.",
       "socraticHints": {
-        "level1": "Ми майже біля цілі! Перевір уважно арифметику при зведенні подібних доданків.",
-        "level2Template": "Поглянь, як ти об'єднав доданки з $x$ або вільні числа. Одне з обчислень містить арифметичну неточність.",
-        "level3Template": "Перерахуй коефіцієнт біля $x$ та вільне число справа ще раз і запиши спрощене рівняння."
+        "level1": "You are very close! Check your arithmetic carefully when combining like terms.",
+        "level2Template": "Look at how you combined the $x$-terms or the constant numbers. One of those calculations has a small arithmetic slip.",
+        "level3Template": "Recalculate the coefficient of $x$ and the constant term on the right side, then write the simplified equation."
       }
     },
     {
       "id": "RULE_ISOLATION",
       "errorCategory": "DIVISION_OR_ISOLATION",
-      "titleUk": "Знаходження невідомого множника",
-      "titleEn": "Isolating the Variable by Division",
+      "titleUk": "Isolating the Unknown Variable",
+      "titleEn": "Isolating the Unknown Variable",
       "formulaLatex": "ax = b \\implies x = \\frac{b}{a}",
-      "ussrMethodologyNote": "Щоб знайти невідомий множник, потрібно добуток поділити на відомий множник.",
+      "ussrMethodologyNote": "To find an unknown factor, divide the product on the right side by the known coefficient of x.",
       "socraticHints": {
-        "level1": "Щоб знайти невідомий множник $x$ у рівнянні виду $a \\cdot x = b$, яку дію потрібно виконати з обома частинами рівняння?",
-        "level2Template": "Подивись на коефіцієнт перед $x$ та число в правій частині. Чи правильно ти виконав ділення?",
-        "level3Template": "Поділи праву частину рівняння на коефіцієнт перед $x$ і запиши значення $x = ...$"
+        "level1": "To isolate $x$ in an equation of the form $a \\cdot x = b$, what operation should we apply to both sides?",
+        "level2Template": "Check the coefficient in front of $x$ and the constant on the other side. Did you divide accurately?",
+        "level3Template": "Divide the constant term by the coefficient of $x$ and write $x = ...$"
       }
     }
   ],
@@ -58,8 +58,8 @@
     {
       "id": "prob-test-scenario",
       "topicId": "topic-distributive",
-      "topicTitle": "Лінійні рівняння з дужками (Розподільний закон)",
-      "gradeLevel": "7 клас · Алгебра (Кісельов / Макаричев)",
+      "topicTitle": "Linear Equations with Parentheses (Distributive Property)",
+      "gradeLevel": "Grade 7 Algebra · Classical USSR Curriculum",
       "equation": "3(x + 4) = 2x + 19",
       "latex": "3(x + 4) = 2x + 19",
       "variable": "x",
@@ -70,8 +70,8 @@
     {
       "id": "prob-brackets-2",
       "topicId": "topic-distributive",
-      "topicTitle": "Лінійні рівняння з дужками (Розподільний закон)",
-      "gradeLevel": "7 клас · Алгебра (Кісельов / Макаричев)",
+      "topicTitle": "Linear Equations with Parentheses (Distributive Property)",
+      "gradeLevel": "Grade 7 Algebra · Classical USSR Curriculum",
       "equation": "5(x - 2) = 3x + 4",
       "latex": "5(x - 2) = 3x + 4",
       "variable": "x",
@@ -82,8 +82,8 @@
     {
       "id": "prob-transposition-1",
       "topicId": "topic-transposition",
-      "topicTitle": "Перенесення доданків та зведення подібних",
-      "gradeLevel": "7 клас · Алгебра (Кісельов / Макаричев)",
+      "topicTitle": "Transposition of Terms & Combining Like Terms",
+      "gradeLevel": "Grade 7 Algebra · Classical USSR Curriculum",
       "equation": "7x - 11 = 4x + 13",
       "latex": "7x - 11 = 4x + 13",
       "variable": "x",
@@ -94,8 +94,8 @@
     {
       "id": "prob-olympiad-1",
       "topicId": "topic-olympiad",
-      "topicTitle": "Олімпіадна алгебра · Багатокрокові рівняння з дужками",
-      "gradeLevel": "7-8 клас · Збірник Сканаві / Олімпіадна підготовка",
+      "topicTitle": "Olympiad Prep · Multi-Bracket Linear Equations",
+      "gradeLevel": "Grade 7-8 · Skanavi Collection",
       "equation": "4(2x + 3) - 3(x - 1) = 3x + 27",
       "latex": "4(2x + 3) - 3(x - 1) = 3x + 27",
       "variable": "x",

@@ -17,23 +17,23 @@ const PHASE_LABELS: Record<
   { label: string; colorClass: string }
 > = {
   SOLVING: {
-    label: "Активне розв'язання",
+    label: "Active Solving",
     colorClass: "bg-[#0071E3]/10 text-[#0071E3]",
   },
   SOCRATIC_GUIDE: {
-    label: "Сократівський діалог",
+    label: "Adaptive Socratic Guidance",
     colorClass: "bg-[#D97706]/12 text-[#D97706]",
   },
   WORKED_EXAMPLE: {
-    label: "Покроковий розбір",
+    label: "Worked Explanation",
     colorClass: "bg-[#BF5AF2]/12 text-[#9333EA]",
   },
   REINFORCEMENT: {
-    label: "Закріплення на аналогу",
+    label: "Follow-Up Practice",
     colorClass: "bg-[#0071E3]/15 text-[#0071E3]",
   },
   MASTERED: {
-    label: "Тему засвоєно ✓",
+    label: "Mastered ✓",
     colorClass: "bg-[#ECFDF3] text-[#1D9E5E]",
   },
 };
@@ -80,10 +80,10 @@ export function TutorChat({
           </div>
           <div>
             <h2 className="text-sm font-semibold text-[#1D1D1F] tracking-tight">
-              AI-Тьютор з математики
+              AI Math Tutor
             </h2>
             <p className="text-[11px] text-[#6E6E73]">
-              Сократівське навчання · Без готових відповідей
+              Guided Socratic Questions · Error Diagnosis
             </p>
           </div>
         </div>
@@ -94,7 +94,7 @@ export function TutorChat({
           >
             {phaseMeta.label}
             {fsmState.phase === "SOCRATIC_GUIDE" &&
-              ` · Підказка ${fsmState.hintLevel}/3`}
+              ` · Hint ${fsmState.hintLevel}/3`}
           </span>
         </div>
       </div>
@@ -115,11 +115,11 @@ export function TutorChat({
             >
               <div className="flex items-center gap-2 mb-1 px-1">
                 <span className="text-[11px] font-medium text-[#86868B]">
-                  {isTutor ? "AI-Тьютор" : "Ви"}
+                  {isTutor ? "AI Tutor" : "Student"}
                 </span>
                 {isTutor && msg.hintLevel && msg.hintLevel > 0 ? (
                   <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#FFFBEB] text-[#D97706] border border-[#D97706]/20">
-                    Рівень підказки {msg.hintLevel}/3
+                    Hint Level {msg.hintLevel}/3
                   </span>
                 ) : null}
                 {isTutor && msg.errorTag ? (
@@ -151,7 +151,7 @@ export function TutorChat({
         {isSubmitting && (
           <div className="flex items-center gap-2 text-xs text-[#6E6E73] px-2">
             <Sparkles className="w-3.5 h-3.5 text-[#0071E3] animate-spin" />
-            <span>Тьютор перевіряє алгебру через символьний рушій...</span>
+            <span>Verifying algebraic reasoning...</span>
           </div>
         )}
       </div>
@@ -162,11 +162,11 @@ export function TutorChat({
           <button
             type="button"
             disabled={isSubmitting}
-            onClick={() => onSendMessage("Дай підказку, що робити далі?")}
+            onClick={() => onSendMessage("Can you give me a hint?")}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-white border border-black/[0.08] hover:bg-black/[0.04] text-[#1D1D1F] transition-colors cursor-pointer"
           >
             <Lightbulb className="w-3.5 h-3.5 text-[#D97706]" />
-            Навідна підказка
+            Ask for a Hint
           </button>
 
           {canRequestWorkedExample && (
@@ -175,10 +175,10 @@ export function TutorChat({
               disabled={isSubmitting}
               onClick={onRequestWorkedExample}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-[#FFFBEB] border border-[#D97706]/30 hover:bg-[#FEF3C7] text-[#B45309] transition-colors cursor-pointer"
-              title="Доступно після спроби розв'язання: показує розбір і дає задачу на закріплення"
+              title="Unlocked after attempting: explains the step and generates a follow-up problem"
             >
               <BookOpenCheck className="w-3.5 h-3.5" />
-              Показати покроковий розбір (після спроби)
+              Show Worked Step Explanation
             </button>
           )}
         </div>
@@ -188,7 +188,7 @@ export function TutorChat({
             type="text"
             value={messageInput}
             onChange={(e) => setMessageInput(e.target.value)}
-            placeholder="Напишіть відповідь на питання тьютора або крок рівняння..."
+            placeholder="Reply to the tutor or enter an equation step..."
             disabled={isSubmitting}
             className="flex-1 px-4 py-2.5 rounded-2xl bg-white border border-black/[0.1] text-sm text-[#1D1D1F] placeholder:text-[#86868B] focus:outline-none focus:ring-2 focus:ring-[#0071E3]/25 focus:border-[#0071E3] transition-all"
           />
@@ -196,7 +196,7 @@ export function TutorChat({
             type="submit"
             disabled={!messageInput.trim() || isSubmitting}
             className="w-10 h-10 rounded-2xl bg-[#1D1D1F] hover:bg-black/80 disabled:opacity-40 text-white flex items-center justify-center transition-all cursor-pointer shrink-0"
-            aria-label="Надіслати"
+            aria-label="Send message"
           >
             <Send className="w-4 h-4" />
           </button>

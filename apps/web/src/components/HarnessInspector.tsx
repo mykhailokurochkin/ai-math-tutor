@@ -31,7 +31,7 @@ export function HarnessInspector({
           <div className="w-2.5 h-2.5 rounded-full bg-[#30D158] animate-pulse" />
           <Terminal className="w-4 h-4 text-[#0A84FF]" />
           <span className="text-xs font-semibold tracking-tight text-white">
-            AI Harness Inspector · Under the Hood (Neuro-Symbolic Telemetry)
+            AI Harness Inspector · Neuro-Symbolic Telemetry
           </span>
           <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-white/[0.07] text-[#A1A1A6]">
             Engine: {llmStatus.provider} ({llmStatus.modelName})
@@ -40,8 +40,7 @@ export function HarnessInspector({
 
         <div className="flex items-center gap-3 text-xs font-mono text-[#A1A1A6]">
           <span>
-            FSM:{" "}
-            <strong className="text-[#0A84FF]">{fsmState.phase}</strong>
+            FSM: <strong className="text-[#0A84FF]">{fsmState.phase}</strong>
           </span>
           <span>
             Hint: <strong className="text-white">L{fsmState.hintLevel}/3</strong>
@@ -57,11 +56,11 @@ export function HarnessInspector({
 
       {!latest ? (
         <div className="p-6 text-center text-xs text-[#A1A1A6]">
-          Інспектор очікує першого ходу. Натисніть{" "}
+          Waiting for the first student step. Click{" "}
           <strong className="text-white">
-            «▶ Запустити Тестовий Сценарій (3x + 4 = 2x + 19)»
+            &ldquo;1. Run Test Scenario: 3(x + 4) = 2x + 19 → 3x + 4 = 2x + 19&rdquo;
           </strong>{" "}
-          на панелі рев&apos;юера вище або введіть крок у зошиті, щоб побачити живу телеметрію харнесу.
+          above or submit an equation step to inspect the Neuro-Symbolic execution trace.
         </div>
       ) : (
         <div className="p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5 text-xs">
@@ -166,7 +165,7 @@ export function HarnessInspector({
             <div className="flex items-center justify-between text-[#A1A1A6] font-medium">
               <span className="inline-flex items-center gap-1.5 text-white">
                 <BookOpen className="w-3.5 h-3.5 text-[#FF9F0A]" />
-                3. Curriculum & Scratchpad
+                3. Curriculum & Practice Gen
               </span>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-white/[0.08] text-[#D1D1D6]">
                 {latest.inputClassification}
@@ -175,8 +174,7 @@ export function HarnessInspector({
 
             <div className="space-y-1 text-[11px] text-[#D1D1D6]">
               <div className="font-medium text-white">
-                {latest.curriculumLookup?.ruleTitle ??
-                  "Загальне алгебраїчне перетворення"}
+                {latest.curriculumLookup?.ruleTitle ?? "Algebraic Equivalence"}
               </div>
               {latest.generatedFollowUpProblem && (
                 <div className="px-2 py-1 rounded-lg bg-[#0A84FF]/15 text-[#0A84FF] font-mono">
@@ -229,8 +227,8 @@ export function HarnessInspector({
               </div>
               <p className="leading-snug">
                 {latest.guardrailCheck.intercepted
-                  ? `Перехоплено передчасний злив (${latest.guardrailCheck.leakedTokens.join(", ")}). Замінено на безпечне навідне питання.`
-                  : "Відповідь тьютора перевірена: фінальний корінь не злито, правило одного питання дотримано."}
+                  ? `Intercepted premature answer leak (${latest.guardrailCheck.leakedTokens.join(", ")}). Replaced with safe Socratic question.`
+                  : "Tutor output verified: no premature solution leakage detected."}
               </p>
             </div>
           </div>

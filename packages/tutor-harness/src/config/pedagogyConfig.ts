@@ -11,7 +11,7 @@ export const PEDAGOGY_DIRECTIVES_MD = `
    - Hint Level 2: Focus the student's attention on the exact term/sign where the discrepancy occurred.
    - Hint Level 3: Ask the student to compute one atomic arithmetic sub-step.
 5. In WORKED_EXAMPLE phase (after 3 failed attempts), provide a clear, encouraging step-by-step explanation of the stuck step and transition to the reinforcement problem.
-6. Communicate in warm, clear, academic Ukrainian (or match the student's language if they write in English), using LaTeX ($...$) for mathematical expressions.
+6. Communicate in clear, encouraging academic English, using LaTeX ($...$) for mathematical expressions.
 `.trim();
 
 export const CURRICULUM_RULES: CurriculumRule[] =

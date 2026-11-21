@@ -48,17 +48,17 @@ export function ProgressModal({
             </div>
             <div>
               <h2 className="text-base font-semibold text-[#1D1D1F] tracking-tight">
-                Прогрес навчання та журнал помилок — {profile.name}
+                Learning Progress & Mistake Tracking — {profile.name}
               </h2>
               <p className="text-xs text-[#6E6E73]">
-                {profile.grade} · Класична програма з алгебри
+                {profile.grade}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
             className="w-8 h-8 rounded-full bg-black/[0.05] hover:bg-black/[0.1] flex items-center justify-center text-[#1D1D1F] transition-colors cursor-pointer"
-            aria-label="Закрити"
+            aria-label="Close"
           >
             <X className="w-4 h-4" />
           </button>
@@ -70,20 +70,20 @@ export function ProgressModal({
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
             <div className="p-4 rounded-2xl bg-[#F5F5F7] border border-black/[0.04]">
               <div className="flex items-center justify-between text-[#6E6E73] text-xs font-medium mb-1">
-                <span>Засвоєння програми</span>
+                <span>Overall Mastery</span>
                 <Award className="w-4 h-4 text-[#0071E3]" />
               </div>
               <div className="text-2xl font-semibold text-[#1D1D1F] tracking-tight">
                 {progress.overallMasteryPercent}%
               </div>
               <div className="text-[11px] text-[#6E6E73] mt-1">
-                Середній показник по темах
+                Across curriculum topics
               </div>
             </div>
 
             <div className="p-4 rounded-2xl bg-[#F5F5F7] border border-black/[0.04]">
               <div className="flex items-center justify-between text-[#6E6E73] text-xs font-medium mb-1">
-                <span>Виконано вправ</span>
+                <span>Completed Exercises</span>
                 <CheckCircle2 className="w-4 h-4 text-[#1D9E5E]" />
               </div>
               <div className="text-2xl font-semibold text-[#1D1D1F] tracking-tight">
@@ -91,34 +91,34 @@ export function ProgressModal({
               </div>
               <div className="text-[11px] text-[#6E6E73] mt-1">
                 {progress.assistedProblemsCount > 0
-                  ? `З них ${progress.assistedProblemsCount} з покроковим розбором`
-                  : "100% самостійне розв'язання"}
+                  ? `${progress.assistedProblemsCount} with worked explanation`
+                  : "100% independent solutions"}
               </div>
             </div>
 
             <div className="p-4 rounded-2xl bg-[#F5F5F7] border border-black/[0.04]">
               <div className="flex items-center justify-between text-[#6E6E73] text-xs font-medium mb-1">
-                <span>Виправлено помилок</span>
+                <span>Mistakes Corrected</span>
                 <AlertTriangle className="w-4 h-4 text-[#D97706]" />
               </div>
               <div className="text-2xl font-semibold text-[#1D1D1F] tracking-tight">
                 {progress.resolvedMistakesCount} / {progress.totalMistakesCount}
               </div>
               <div className="text-[11px] text-[#6E6E73] mt-1">
-                Діагностовано символьним рушієм
+                Diagnosed by Symbolic Verifier
               </div>
             </div>
 
             <div className="p-4 rounded-2xl bg-[#F5F5F7] border border-black/[0.04]">
               <div className="flex items-center justify-between text-[#6E6E73] text-xs font-medium mb-1">
-                <span>Закріплено аналогами</span>
+                <span>Verified by Follow-Up</span>
                 <ShieldCheck className="w-4 h-4 text-[#0071E3]" />
               </div>
               <div className="text-2xl font-semibold text-[#1D1D1F] tracking-tight">
                 {progress.verifiedMistakesCount}
               </div>
               <div className="text-[11px] text-[#6E6E73] mt-1">
-                Верифіковано ізоморфними задачами
+                Confirmed on similar problems
               </div>
             </div>
           </div>
@@ -128,7 +128,7 @@ export function ProgressModal({
             <div className="flex items-center gap-2 mb-3">
               <BookOpen className="w-4 h-4 text-[#0071E3]" />
               <h3 className="text-sm font-semibold text-[#1D1D1F] tracking-tight">
-                Засвоєння тем (Методика Кісельова / Макаричева)
+                Topic Mastery (Classical USSR Curriculum)
               </h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -143,7 +143,7 @@ export function ProgressModal({
                         {skill.topicTitle}
                       </div>
                       <div className="text-xs text-[#6E6E73] mt-0.5">
-                        Закон:{" "}
+                        Property:{" "}
                         <MathFormula
                           latex={skill.formulaLatex}
                           className="text-[#1D1D1F]"
@@ -163,9 +163,9 @@ export function ProgressModal({
                       />
                     </div>
                     <div className="flex items-center justify-between text-[11px] text-[#6E6E73] mt-1.5">
-                      <span>Розв&apos;язано: {skill.solvedCount}</span>
-                      <span>Помилок: {skill.mistakesCount}</span>
-                      <span>Закріплень: {skill.verifiedFollowUpsCount}</span>
+                      <span>Solved: {skill.solvedCount}</span>
+                      <span>Mistakes: {skill.mistakesCount}</span>
+                      <span>Verified Follow-Ups: {skill.verifiedFollowUpsCount}</span>
                     </div>
                   </div>
                 </div>
@@ -178,13 +178,17 @@ export function ProgressModal({
             <div className="flex items-center gap-2 mb-3">
               <Sparkles className="w-4 h-4 text-[#D97706]" />
               <h3 className="text-sm font-semibold text-[#1D1D1F] tracking-tight">
-                Журнал діагностованих помилок у міркуваннях
+                Diagnosed Reasoning Mistakes Log
               </h3>
             </div>
 
             {progress.mistakesLog.length === 0 ? (
               <div className="p-6 rounded-2xl bg-[#F5F5F7] text-center text-xs text-[#6E6E73]">
-                Поки що помилок у цій сесії не зафіксовано. Спробуйте ввести помилковий крок (наприклад, <code className="px-1.5 py-0.5 bg-white rounded">3x + 4 = 2x + 19</code>), щоб побачити роботу діагностики.
+                No reasoning mistakes recorded in this session yet. Submit an incorrect step (such as{" "}
+                <code className="px-1.5 py-0.5 bg-white rounded">
+                  3x + 4 = 2x + 19
+                </code>
+                ) to test error detection and tracking.
               </div>
             ) : (
               <div className="space-y-2.5">
@@ -203,12 +207,12 @@ export function ProgressModal({
                         </span>
                       </div>
                       <div className="text-xs text-[#6E6E73]">
-                        Задача:{" "}
+                        Problem:{" "}
                         <MathFormula
                           latex={m.problemEquation}
                           className="text-[#1D1D1F] font-medium"
                         />{" "}
-                        → Крок учня:{" "}
+                        → Student Step:{" "}
                         <span className="text-[#D92D20] font-medium">
                           <MathFormula latex={m.studentWrongStep} />
                         </span>
@@ -222,17 +226,17 @@ export function ProgressModal({
                       {m.status === "VERIFIED_BY_FOLLOWUP" && (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[#ECFDF3] text-[#1D9E5E] border border-[#1D9E5E]/20">
                           <CheckCircle2 className="w-3.5 h-3.5" />
-                          Закріплено на аналогу
+                          Verified by Follow-Up
                         </span>
                       )}
                       {m.status === "CORRECTED" && (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[#FFFBEB] text-[#D97706] border border-[#D97706]/20">
-                          Виправлено (чекає закріплення)
+                          Corrected (Pending Follow-Up)
                         </span>
                       )}
                       {m.status === "OPEN" && (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[#FEF3F2] text-[#D92D20] border border-[#D92D20]/20">
-                          У процесі виправлення
+                          Needs Correction
                         </span>
                       )}
                     </div>

@@ -41,8 +41,6 @@ export function WorkspacePane({
     setStepInput("");
   };
 
-  const quickTokens = ["x", "=", "+", "-", "(", ")"];
-
   return (
     <div className="bg-white rounded-3xl border border-black/[0.07] shadow-[0_2px_20px_rgba(0,0,0,0.03)] flex flex-col h-full overflow-hidden">
       {/* Top Workspace Header */}
@@ -53,7 +51,7 @@ export function WorkspacePane({
           </div>
           <div>
             <span className="text-xs font-medium text-[#6E6E73] block">
-              Робочий зошит з алгебри
+              Step-by-Step Math Workspace
             </span>
             <select
               value={currentProblem.id}
@@ -63,7 +61,7 @@ export function WorkspacePane({
             >
               {availableProblems.map((prob) => (
                 <option key={prob.id} value={prob.id}>
-                  {prob.isReinforcement ? "🔁 [Закріплення] " : ""}
+                  {prob.isReinforcement ? "🔁 [Follow-Up] " : ""}
                   {prob.equation} — {prob.topicTitle}
                 </option>
               ))}
@@ -75,10 +73,10 @@ export function WorkspacePane({
           onClick={onResetSession}
           disabled={isSubmitting}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-[#6E6E73] hover:text-[#1D1D1F] bg-black/[0.04] hover:bg-black/[0.08] transition-colors cursor-pointer"
-          title="Почати цю задачу спочатку"
+          title="Reset current exercise"
         >
           <RotateCcw className="w-3.5 h-3.5" />
-          Спочатку
+          Reset
         </button>
       </div>
 
@@ -91,11 +89,11 @@ export function WorkspacePane({
           {currentProblem.isReinforcement ? (
             <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-[#0071E3]/10 text-[#0071E3]">
               <Sparkles className="w-3 h-3" />
-              Аналогічна задача на закріплення
+              Personalized Follow-Up Problem
             </span>
           ) : (
             <span className="text-[11px] font-medium text-[#6E6E73]">
-              Тема: {currentProblem.topicTitle}
+              {currentProblem.topicTitle}
             </span>
           )}
         </div>
@@ -110,18 +108,22 @@ export function WorkspacePane({
       {/* Notebook Steps Grid Surface */}
       <div className="flex-1 p-6 overflow-y-auto space-y-3 bg-[radial-gradient(#00000010_1px,transparent_1px)] [background-size:18px_18px]">
         <div className="flex items-center justify-between text-xs font-medium text-[#6E6E73] mb-1">
-          <span>Покроковий запис розв&apos;язання</span>
-          <span>Кроків: {notebookSteps.length}</span>
+          <span>Student Solution Steps</span>
+          <span>{notebookSteps.length} steps</span>
         </div>
 
         {notebookSteps.length === 0 ? (
           <div className="p-8 rounded-2xl border border-dashed border-black/[0.12] bg-white/80 text-center space-y-2">
             <p className="text-sm font-medium text-[#1D1D1F]">
-              Зошит поки порожній
+              No steps submitted yet
             </p>
             <p className="text-xs text-[#6E6E73] max-w-sm mx-auto leading-relaxed">
-              Запишіть перший алгебраїчний крок розв&apos;язання у полі внизу (наприклад, розкрийте дужки у рівнянні{" "}
-              <MathFormula latex={currentProblem.latex} />
+              Enter your first algebraic step below to solve{" "}
+              <MathFormula latex={currentProblem.latex} /> (or click{" "}
+              <strong>Run Test Scenario</strong> above to simulate{" "}
+              <code className="px-1 py-0.5 bg-black/[0.05] rounded">
+                3x + 4 = 2x + 19
+              </code>
               ).
             </p>
           </div>
@@ -169,24 +171,24 @@ export function WorkspacePane({
                       {isError && (
                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#D92D20]/10 text-[#D92D20]">
                           <AlertCircle className="w-3.5 h-3.5" />
-                          Помилка міркування
+                          Reasoning Error
                         </span>
                       )}
                       {step.status === "CORRECT_INTERMEDIATE" && (
                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#ECFDF3] text-[#1D9E5E]">
                           <CheckCircle2 className="w-3.5 h-3.5" />
-                          Еквівалентний крок
+                          Valid Step
                         </span>
                       )}
                       {isFinal && (
                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#1D9E5E] text-white">
                           <CheckCircle2 className="w-3.5 h-3.5" />
-                          Корінь знайдено
+                          Solved
                         </span>
                       )}
                       {isWorked && (
                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#D97706]/15 text-[#D97706]">
-                          Покроковий розбір
+                          Worked Explanation
                         </span>
                       )}
                     </div>
@@ -207,36 +209,14 @@ export function WorkspacePane({
       {/* Bottom Step Input Form */}
       <form
         onSubmit={handleFormSubmit}
-        className="p-4 border-t border-black/[0.06] bg-[#FBFBFD] space-y-2.5"
+        className="p-4 border-t border-black/[0.06] bg-[#FBFBFD]"
       >
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[11px] text-[#6E6E73] mr-1">Символи:</span>
-            {quickTokens.map((tok) => (
-              <button
-                key={tok}
-                type="button"
-                onClick={() => setStepInput((prev) => `${prev}${tok}`)}
-                className="w-7 h-7 rounded-lg bg-white border border-black/[0.08] hover:bg-black/[0.04] text-xs font-mono font-medium text-[#1D1D1F] transition-colors cursor-pointer"
-              >
-                {tok}
-              </button>
-            ))}
-          </div>
-
-          {fsmState.phase === "MASTERED" && (
-            <span className="text-xs font-semibold text-[#1D9E5E]">
-              ✓ Задачу повністю засвоєно
-            </span>
-          )}
-        </div>
-
         <div className="flex items-center gap-2">
           <input
             type="text"
             value={stepInput}
             onChange={(e) => setStepInput(e.target.value)}
-            placeholder="Запишіть наступний крок рівняння (напр. 3x + 12 = 2x + 19)..."
+            placeholder="Write your next algebraic step (e.g. 3x + 12 = 2x + 19)..."
             disabled={isSubmitting}
             className="flex-1 px-4 py-2.5 rounded-2xl bg-white border border-black/[0.1] text-sm text-[#1D1D1F] placeholder:text-[#86868B] focus:outline-none focus:ring-2 focus:ring-[#0071E3]/25 focus:border-[#0071E3] font-mono transition-all"
           />
@@ -245,10 +225,15 @@ export function WorkspacePane({
             disabled={!stepInput.trim() || isSubmitting}
             className="px-4 py-2.5 rounded-2xl bg-[#0071E3] hover:bg-[#0077ED] disabled:opacity-40 text-white text-sm font-medium inline-flex items-center gap-1.5 transition-all cursor-pointer shrink-0 shadow-sm"
           >
-            <span>Записати крок</span>
+            <span>Submit Step</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>
+        {fsmState.phase === "MASTERED" && (
+          <div className="mt-2 text-xs font-semibold text-[#1D9E5E] px-1">
+            ✓ Concept verified and mastered
+          </div>
+        )}
       </form>
     </div>
   );

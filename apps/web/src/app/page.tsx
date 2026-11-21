@@ -60,24 +60,6 @@ export default function HomePage() {
     await fetchState(profileId);
   };
 
-  const handleCreateStudent = async (name: string) => {
-    setIsSubmitting(true);
-    try {
-      const res = await fetch("/api/profiles", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name }),
-      });
-      if (res.ok) {
-        const json = (await res.json()) as AppStatePayload;
-        setActiveProfileId(json.profile.id);
-        setData(json);
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const handleSendTutorStep = async (
     studentMessage: string,
     requestWorkedExample = false
@@ -172,7 +154,7 @@ export default function HomePage() {
     return (
       <main className="min-h-screen bg-[#F5F5F7] flex items-center justify-center">
         <div className="text-sm font-medium text-[#6E6E73] animate-pulse">
-          Завантаження AI-Тьютора...
+          Loading AI Math Tutor...
         </div>
       </main>
     );
@@ -189,7 +171,6 @@ export default function HomePage() {
         overallMasteryPercent={data.progress.overallMasteryPercent}
         completedProblemsCount={data.progress.completedProblemsCount}
         onSelectProfile={handleSelectProfile}
-        onCreateStudent={handleCreateStudent}
         onOpenProgress={() => setShowProgressModal(true)}
       />
 
@@ -229,7 +210,7 @@ export default function HomePage() {
               onSendMessage={(msg) => void handleSendTutorStep(msg, false)}
               onRequestWorkedExample={() =>
                 void handleSendTutorStep(
-                  "Покажи покроковий розбір цього кроку",
+                  "Show worked explanation for this step",
                   true
                 )
               }

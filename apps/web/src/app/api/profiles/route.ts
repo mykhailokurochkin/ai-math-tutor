@@ -10,8 +10,8 @@ export async function POST(req: NextRequest) {
     };
 
     const created = createNewProfile(
-      body.name || "Новий учень",
-      body.grade || "7 клас · Алгебра (Кісельов / Макаричев)",
+      body.name || "New Student",
+      body.grade || "Grade 7 Algebra · Classical USSR Curriculum",
       "student"
     );
 

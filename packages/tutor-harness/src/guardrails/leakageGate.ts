@@ -13,10 +13,6 @@ export interface LeakageCheckResult {
   trace: GuardrailCheckTrace;
 }
 
-/**
- * Builds the list of forbidden answer strings that must NOT appear in a Socratic response
- * during SOLVING or SOCRATIC_GUIDE phases.
- */
 export function getForbiddenReveals(
   problem: MathProblem,
   verification: VerificationResult,
@@ -38,13 +34,13 @@ export function getForbiddenReveals(
     `${v}=${r}`,
     `${r} = ${v}`,
     `${r}=${v}`,
+    `answer is ${r}`,
+    `root is ${r}`,
+    `equals ${r}`,
     `відповідь: ${r}`,
     `відповідь ${r}`,
-    `корінь ${r}`,
-    `дорівнює ${r}`,
   ];
 
-  // On Hint Level 1, also forbid leaking the full corrected canonical equation step directly
   if (
     hintLevel <= 1 &&
     verification.expectedNextCanonicalStep &&
@@ -56,10 +52,6 @@ export function getForbiddenReveals(
   return forbidden;
 }
 
-/**
- * Generates a deterministic, pedagogically sound fallback Socratic response
- * if the LLM attempts to leak the final answer or fails guardrail checks.
- */
 export function buildSafeSocraticFallback(
   problem: MathProblem,
   verification: VerificationResult,
@@ -76,14 +68,14 @@ export function buildSafeSocraticFallback(
     const lhsExpected = verification.lhsExpected.formatted;
     const lhsStudent = verification.lhsStudent?.formatted ?? "";
     if (hintLevel === 1) {
-      return `Не поспішай! У кроці $${verification.extractedEquation ?? problem.equation}$ є неточність при розкритті дужок. Згадай розподільний закон множення $a(b + c) = ab + ac$: коли перед дужками стоїть множник, на які доданки всередині дужок його потрібно помножити?`;
+      return `Hold on! Let's look closely at your step $${verification.extractedEquation ?? problem.equation}$. Recall the distributive property of multiplication $a(b + c) = ab + ac$: when a multiplier stands outside the parentheses, which terms inside the parentheses must it multiply?`;
     }
     if (hintLevel === 2) {
-      return `Поглянь уважно на ліву частину рівняння $${problem.equation.split("=")[0].trim()}$: ти записав $${lhsStudent || "перший доданок"}$, тобто помножив число перед дужками лише на $x$. А що має статися з другим доданком у дужках?`;
+      return `Look at the left side of the equation $${problem.equation.split("=")[0].trim()}$: you wrote $${lhsStudent || "the first term"}$, meaning you multiplied the outside factor by $x$, but what happened to the second term inside the parentheses?`;
     }
     const expectedConstant = Math.abs(verification.lhsExpected.b);
     const sign = verification.lhsExpected.b >= 0 ? "+" : "-";
-    return `Давай розберемо ліву частину майже до кінця: перший доданок $${verification.lhsExpected.a}x$ ти знайшов правильно. Після множення числа перед дужками на другий доданок у дужках отримуємо $${sign} ${expectedConstant}$ (тобто ліва частина має вигляд $${lhsExpected}$). Як тепер запишеться все рівняння разом із правою частиною?`;
+    return `Let's break down the left side together: your first term $${verification.lhsExpected.a}x$ is correct. Multiplying the outside factor by the second term inside the brackets gives $${sign} ${expectedConstant}$ (so the left side expands to $${lhsExpected}$). How should the full equation be written now?`;
   }
 
   if (rule) {
@@ -92,13 +84,9 @@ export function buildSafeSocraticFallback(
     return rule.socraticHints.level3Template;
   }
 
-  return `Давай перевіримо останній крок у рівнянні $${problem.equation}$: яка дія має бути виконана з обома частинами рівняння, щоб зберегти рівність?`;
+  return `Let's examine your last step in $${problem.equation}$: what operation should we apply to both sides of the equation to preserve equality?`;
 }
 
-/**
- * Output-Admission Control (SocraGate pattern):
- * Inspects candidate LLM output against forbidden solution tokens before returning it to the student.
- */
 export function enforceLeakageGate(
   candidateResponse: string,
   problem: MathProblem,
@@ -151,7 +139,6 @@ export function enforceLeakageGate(
     };
   }
 
-  // Leak detected! Replace with deterministic safe Socratic fallback
   const fallback = buildSafeSocraticFallback(
     problem,
     verification,

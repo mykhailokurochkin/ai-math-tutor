@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     const result = await processStudentStepInStore({
       profileId,
       studentMessage:
-        studentMessage || "Покажи покроковий розбір цього кроку",
+        studentMessage || "Show worked explanation for this step",
       requestWorkedExample: Boolean(body.requestWorkedExample),
     });
 

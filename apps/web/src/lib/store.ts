@@ -92,7 +92,7 @@ export interface DatabaseSchema {
 function createDefaultSkillMastery(isPreseededStudent = false): SkillMasteryRecord[] {
   return CURRICULUM_RULES.map((rule, idx) => ({
     topicId: rule.id,
-    topicTitle: rule.titleUk,
+    topicTitle: rule.titleEn,
     errorCategory: rule.errorCategory,
     formulaLatex: rule.formulaLatex,
     masteryPercent: isPreseededStudent ? [78, 65, 85, 90][idx % 4] : [60, 75, 80, 85][idx % 4],
@@ -116,7 +116,7 @@ function createInitialSessionForProfile(
       {
         id: `msg-init-${profileId}-${Date.now()}`,
         role: "tutor",
-        content: `Вітаю! Розв'яжемо рівняння **$${problem.equation}$**.\n\nПодивись на ліву частину рівняння: з якого кроку варто почати, щоб позбутися дужок? Запиши свій перший крок!`,
+        content: `Let's solve the linear equation **$${problem.equation}$**.\n\nLook at the left side of the equation: what is your first step to expand the parentheses? Write out your next equation step.`,
         timestamp: new Date().toISOString(),
         phaseBadge: fsmState.phase,
         hintLevel: 0,
@@ -132,19 +132,19 @@ function buildSeedDatabase(): DatabaseSchema {
   const now = new Date().toISOString();
   const reviewerProfile: UserProfile = {
     id: "reviewer",
-    name: "Tech Reviewer (Evaluator)",
+    name: "Tech Reviewer",
     role: "reviewer",
-    grade: "Evaluation & Harness Inspector Mode",
+    grade: "Evaluator & Harness Inspector Mode",
     avatarBadge: "TR",
     createdAt: now,
   };
 
   const studentProfile: UserProfile = {
     id: "student-alex",
-    name: "Олександр К.",
+    name: "Alex K.",
     role: "student",
-    grade: "7-А клас · Алгебра (Кісельов / Макаричев)",
-    avatarBadge: "ОК",
+    grade: "Grade 7 Algebra · Classical USSR Curriculum",
+    avatarBadge: "AK",
     createdAt: now,
   };
 
@@ -177,9 +177,9 @@ function buildSeedDatabase(): DatabaseSchema {
           problemEquation: "5(x - 2) = 3x + 4",
           studentWrongStep: "5x - 2 = 3x + 4",
           errorCategory: "DISTRIBUTIVE_PROPERTY",
-          ruleTitle: ruleDist?.titleUk ?? "Розподільний закон множення",
+          ruleTitle: ruleDist?.titleEn ?? "Distributive Property of Multiplication",
           diagnosticSummary:
-            "Множник 5 не помножено на другий доданок (-2) при розкритті дужок.",
+            "Multiplier 5 was not applied to the second term (-2) when expanding parentheses.",
           status: "VERIFIED_BY_FOLLOWUP",
           timestamp: now,
         },
@@ -204,9 +204,9 @@ function resolveDbFilePath(): string {
     if (!fs.existsSync(localDataDir)) {
       fs.mkdirSync(localDataDir, { recursive: true });
     }
-    return path.join(localDataDir, "tutor-store.json");
+    return path.join(localDataDir, "tutor-store-en.json");
   } catch {
-    return path.join("/tmp", "ai-math-tutor-store.json");
+    return path.join("/tmp", "ai-math-tutor-store-en.json");
   }
 }
 
@@ -226,7 +226,7 @@ export function loadDatabase(): DatabaseSchema {
       }
     }
   } catch {
-    // Fallback to seed DB if file read fails
+    // Fallback to seed DB
   }
 
   memoryDb = buildSeedDatabase();
@@ -240,7 +240,7 @@ export function saveDatabase(db: DatabaseSchema): void {
   try {
     fs.writeFileSync(filePath, JSON.stringify(db, null, 2), "utf-8");
   } catch {
-    // Ignore write failure on read-only serverless environment
+    // Ignore on read-only serverless environment
   }
 }
 
@@ -328,7 +328,7 @@ export function resetSessionProblem(
 
 export function createNewProfile(
   name: string,
-  grade = "7 клас · Алгебра",
+  grade = "Grade 7 Algebra · Classical USSR Curriculum",
   role: UserRole = "student"
 ): UserProfile {
   const db = loadDatabase();
@@ -339,11 +339,11 @@ export function createNewProfile(
       .split(/\s+/)
       .map((w) => w[0]?.toUpperCase() ?? "")
       .join("")
-      .slice(0, 2) || "УЧ";
+      .slice(0, 2) || "ST";
 
   const newProfile: UserProfile = {
     id,
-    name: name.trim() || "Новий учень",
+    name: name.trim() || "New Student",
     role,
     grade,
     avatarBadge: initials,
