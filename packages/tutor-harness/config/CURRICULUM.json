@@ -1,0 +1,107 @@
+{
+  "curriculumTitle": "Алгебра · 6-7 клас (Класична школа Кісельова / Макаричева)",
+  "rules": [
+    {
+      "id": "RULE_DISTRIBUTIVE",
+      "errorCategory": "DISTRIBUTIVE_PROPERTY",
+      "titleUk": "Розподільний закон множення (Розкриття дужок)",
+      "titleEn": "Distributive Property of Multiplication",
+      "formulaLatex": "a(b + c) = ab + ac",
+      "ussrMethodologyNote": "За методикою Кісельова: щоб помножити число на суму, потрібно помножити це число на кожний доданок у дужках окремо і результати додати. Типова помилка учнів — множення лише на перший доданок.",
+      "socraticHints": {
+        "level1": "Згадай розподільний закон множення $a(b + c) = ab + ac$. Коли перед дужками стоїть множник, на які доданки всередині дужок він має діяти?",
+        "level2Template": "Подивись уважно на ліву частину рівняння. Розкриваючи дужки, ти помножив множник перед дужками на перший доданок ($x$), але другий доданок у дужках залишився без змін. На що ще потрібно помножити число перед дужками?",
+        "level3Template": "Давай зробимо це покроково: перший доданок після розкриття дужок правильний, а тепер помнож число перед дужками на вільний доданок у дужках і запиши виправлене рівняння."
+      }
+    },
+    {
+      "id": "RULE_TRANSPOSITION",
+      "errorCategory": "SIGN_FLIP_OR_TRANSPOSITION",
+      "titleUk": "Перенесення доданків через знак рівності",
+      "titleEn": "Transposition of Terms Across Equality",
+      "formulaLatex": "A + B = C \\implies A = C - B",
+      "ussrMethodologyNote": "При перенесенні будь-якого доданка з однієї частини рівняння в іншу його знак обов'язково змінюється на протилежний (плюс на мінус, мінус на плюс).",
+      "socraticHints": {
+        "level1": "Згадай правило перенесення доданків із однієї частини рівняння в іншу. Що відбувається зі знаком доданка, коли він «перестрибує» через знак `=`?",
+        "level2Template": "Перевір знаки доданків, які ти переніс через знак рівності. Один із них зберіг свій старий знак замість того, щоб змінити його на протилежний.",
+        "level3Template": "Зміни знак перенесеного доданка на протилежний і перерахуй цю частину рівняння."
+      }
+    },
+    {
+      "id": "RULE_LIKE_TERMS",
+      "errorCategory": "COMBINE_LIKE_TERMS",
+      "titleUk": "Зведення подібних доданків",
+      "titleEn": "Combining Like Terms",
+      "formulaLatex": "ax + bx = (a + b)x",
+      "ussrMethodologyNote": "Щоб звести подібні доданки, треба скласти їхні числові коефіцієнти і результат помножити на спільну буквену частину.",
+      "socraticHints": {
+        "level1": "Ми майже біля цілі! Перевір уважно арифметику при зведенні подібних доданків.",
+        "level2Template": "Поглянь, як ти об'єднав доданки з $x$ або вільні числа. Одне з обчислень містить арифметичну неточність.",
+        "level3Template": "Перерахуй коефіцієнт біля $x$ та вільне число справа ще раз і запиши спрощене рівняння."
+      }
+    },
+    {
+      "id": "RULE_ISOLATION",
+      "errorCategory": "DIVISION_OR_ISOLATION",
+      "titleUk": "Знаходження невідомого множника",
+      "titleEn": "Isolating the Variable by Division",
+      "formulaLatex": "ax = b \\implies x = \\frac{b}{a}",
+      "ussrMethodologyNote": "Щоб знайти невідомий множник, потрібно добуток поділити на відомий множник.",
+      "socraticHints": {
+        "level1": "Щоб знайти невідомий множник $x$ у рівнянні виду $a \\cdot x = b$, яку дію потрібно виконати з обома частинами рівняння?",
+        "level2Template": "Подивись на коефіцієнт перед $x$ та число в правій частині. Чи правильно ти виконав ділення?",
+        "level3Template": "Поділи праву частину рівняння на коефіцієнт перед $x$ і запиши значення $x = ...$"
+      }
+    }
+  ],
+  "defaultProblems": [
+    {
+      "id": "prob-test-scenario",
+      "topicId": "topic-distributive",
+      "topicTitle": "Лінійні рівняння з дужками (Розподільний закон)",
+      "gradeLevel": "7 клас · Алгебра (Кісельов / Макаричев)",
+      "equation": "3(x + 4) = 2x + 19",
+      "latex": "3(x + 4) = 2x + 19",
+      "variable": "x",
+      "expectedRoot": 7,
+      "targetSkill": "DISTRIBUTIVE_PROPERTY",
+      "difficulty": 1
+    },
+    {
+      "id": "prob-brackets-2",
+      "topicId": "topic-distributive",
+      "topicTitle": "Лінійні рівняння з дужками (Розподільний закон)",
+      "gradeLevel": "7 клас · Алгебра (Кісельов / Макаричев)",
+      "equation": "5(x - 2) = 3x + 4",
+      "latex": "5(x - 2) = 3x + 4",
+      "variable": "x",
+      "expectedRoot": 7,
+      "targetSkill": "DISTRIBUTIVE_PROPERTY",
+      "difficulty": 2
+    },
+    {
+      "id": "prob-transposition-1",
+      "topicId": "topic-transposition",
+      "topicTitle": "Перенесення доданків та зведення подібних",
+      "gradeLevel": "7 клас · Алгебра (Кісельов / Макаричев)",
+      "equation": "7x - 11 = 4x + 13",
+      "latex": "7x - 11 = 4x + 13",
+      "variable": "x",
+      "expectedRoot": 8,
+      "targetSkill": "SIGN_FLIP_OR_TRANSPOSITION",
+      "difficulty": 1
+    },
+    {
+      "id": "prob-olympiad-1",
+      "topicId": "topic-olympiad",
+      "topicTitle": "Олімпіадна алгебра · Багатокрокові рівняння з дужками",
+      "gradeLevel": "7-8 клас · Збірник Сканаві / Олімпіадна підготовка",
+      "equation": "4(2x + 3) - 3(x - 1) = 3x + 27",
+      "latex": "4(2x + 3) - 3(x - 1) = 3x + 27",
+      "variable": "x",
+      "expectedRoot": 6,
+      "targetSkill": "DISTRIBUTIVE_PROPERTY",
+      "difficulty": 3
+    }
+  ]
+}
