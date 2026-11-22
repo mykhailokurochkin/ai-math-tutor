@@ -37,7 +37,7 @@ export function resolveActiveProviderInfo(): {
   ) {
     return {
       provider: "google",
-      modelName: process.env.LLM_MODEL || "gemini-3.8-flash",
+      modelName: process.env.LLM_MODEL || "gemini-3.5-flash-lite",
     };
   }
 
@@ -233,6 +233,7 @@ ${ctx.forbiddenReveals.length > 0 ? `FORBIDDEN STRINGS (DO NOT OUTPUT THESE): ${
       messages,
       temperature: 0.3,
       maxTokens: 350,
+      abortSignal: AbortSignal.timeout(8000),
     });
 
     return {
