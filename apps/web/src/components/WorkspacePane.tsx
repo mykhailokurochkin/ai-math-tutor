@@ -1,12 +1,14 @@
 "use client";
 
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   CheckCircle2,
   AlertCircle,
   RotateCcw,
   Sparkles,
   BookMarked,
+  ChevronDown,
+  Check,
 } from "lucide-react";
 import { MathFormula } from "./MathRenderer";
 import type { MathProblem, FSMState } from "@ai-math-tutor/tutor-harness";
@@ -29,31 +31,123 @@ export function WorkspacePane({
   onSelectProblem: (problemId: string) => void;
   onResetSession: () => void;
 }) {
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
+        setDropdownOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setDropdownOpen(false);
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+
   return (
     <div className="bg-white rounded-3xl border border-black/[0.07] shadow-[0_2px_20px_rgba(0,0,0,0.03)] flex flex-col h-full min-h-0 overflow-hidden">
-      {/* Top Workspace Header */}
-      <div className="px-6 py-3.5 border-b border-black/[0.06] flex flex-wrap items-center justify-between gap-3 bg-[#FBFBFD] shrink-0">
-        <div className="flex items-center gap-2.5 min-w-0">
+      {/* Top Workspace Header with Custom Apple-Style Popover Dropdown */}
+      <div className="px-6 py-3.5 border-b border-black/[0.06] flex items-center justify-between gap-3 bg-[#FBFBFD] shrink-0">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1" ref={dropdownRef}>
           <div className="w-8 h-8 rounded-xl bg-[#0071E3]/10 text-[#0071E3] flex items-center justify-center shrink-0">
             <BookMarked className="w-4 h-4" />
           </div>
-          <div className="min-w-0">
-            <span className="text-xs font-medium text-[#6E6E73] block">
+
+          <div className="relative min-w-0 flex-1">
+            <span className="text-[11px] font-medium text-[#6E6E73] block">
               Step-by-Step Solution Board
             </span>
-            <select
-              value={currentProblem.id}
-              onChange={(e) => onSelectProblem(e.target.value)}
+
+            <button
+              type="button"
               disabled={isSubmitting}
-              className="text-sm font-semibold text-[#1D1D1F] bg-transparent focus:outline-none cursor-pointer pr-2 truncate max-w-full"
+              onClick={() => setDropdownOpen((v) => !v)}
+              className="mt-0.5 inline-flex items-center gap-2 px-2.5 py-1 -ml-2.5 rounded-xl hover:bg-black/[0.04] transition-colors cursor-pointer max-w-full group"
             >
-              {availableProblems.map((prob) => (
-                <option key={prob.id} value={prob.id}>
-                  {prob.isReinforcement ? "🔁 [Follow-Up] " : ""}
-                  {prob.equation} — {prob.topicTitle}
-                </option>
-              ))}
-            </select>
+              {currentProblem.isReinforcement && (
+                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-[#0071E3]/10 text-[#0071E3] shrink-0">
+                  Follow-Up
+                </span>
+              )}
+              <span className="text-sm font-semibold text-[#1D1D1F] shrink-0">
+                <MathFormula latex={currentProblem.latex} />
+              </span>
+              <span className="text-xs text-[#6E6E73] truncate hidden sm:inline">
+                — {currentProblem.topicTitle}
+              </span>
+              <ChevronDown
+                className={`w-4 h-4 text-[#6E6E73] group-hover:text-[#1D1D1F] transition-transform duration-150 shrink-0 ${
+                  dropdownOpen ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {/* Custom Apple Popover Menu */}
+            {dropdownOpen && (
+              <div className="absolute left-0 mt-1.5 w-[340px] sm:w-[420px] rounded-2xl bg-white/95 backdrop-blur-xl shadow-[0_12px_36px_rgba(0,0,0,0.12)] border border-black/[0.08] p-1.5 z-40 space-y-1">
+                <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-[#86868B]">
+                  Select Curriculum Exercise
+                </div>
+                <div className="max-h-72 overflow-y-auto space-y-1">
+                  {availableProblems.map((prob) => {
+                    const isSelected = prob.id === currentProblem.id;
+                    return (
+                      <button
+                        key={prob.id}
+                        type="button"
+                        onClick={() => {
+                          setDropdownOpen(false);
+                          if (prob.id !== currentProblem.id) {
+                            onSelectProblem(prob.id);
+                          }
+                        }}
+                        className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center justify-between gap-3 transition-colors cursor-pointer ${
+                          isSelected
+                            ? "bg-[#0071E3]/[0.08] text-[#1D1D1F]"
+                            : "hover:bg-[#F5F5F7] text-[#1D1D1F]"
+                        }`}
+                      >
+                        <div className="min-w-0 space-y-0.5">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-semibold text-[#1D1D1F]">
+                              <MathFormula latex={prob.latex} />
+                            </span>
+                            {prob.isReinforcement ? (
+                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#0071E3]/10 text-[#0071E3]">
+                                Personalized Follow-Up
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-black/[0.05] text-[#6E6E73]">
+                                Level {prob.difficulty}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs text-[#6E6E73] truncate">
+                            {prob.topicTitle}
+                          </div>
+                        </div>
+
+                        {isSelected && (
+                          <div className="w-5 h-5 rounded-full bg-[#0071E3] text-white flex items-center justify-center shrink-0">
+                            <Check className="w-3 h-3" />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
