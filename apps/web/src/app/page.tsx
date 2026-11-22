@@ -40,7 +40,7 @@ export default function HomePage() {
   const [data, setData] = useState<AppStatePayload | null>(null);
   const [activeProfileId, setActiveProfileId] = useState<string>("reviewer");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showInspector, setShowInspector] = useState(true);
+  const [showInspector, setShowInspector] = useState(false);
   const [showProgressModal, setShowProgressModal] = useState(false);
 
   const fetchState = useCallback(async (profileId: string) => {
@@ -152,7 +152,7 @@ export default function HomePage() {
 
   if (!data) {
     return (
-      <main className="min-h-screen bg-[#F5F5F7] flex items-center justify-center">
+      <main className="h-screen bg-[#F5F5F7] flex items-center justify-center">
         <div className="text-sm font-medium text-[#6E6E73] animate-pulse">
           Loading AI Math Tutor...
         </div>
@@ -163,7 +163,7 @@ export default function HomePage() {
   const isReviewer = data.profile.role === "reviewer";
 
   return (
-    <div className="min-h-screen bg-[#F5F5F7] text-[#1D1D1F] flex flex-col">
+    <div className="h-screen overflow-hidden bg-[#F5F5F7] text-[#1D1D1F] flex flex-col">
       {/* Top Apple-clean Frosted Navigation Bar */}
       <HeaderBar
         activeProfile={data.profile}
@@ -174,22 +174,24 @@ export default function HomePage() {
         onOpenProgress={() => setShowProgressModal(true)}
       />
 
-      {/* Main Content Container */}
-      <main className="flex-1 max-w-[1440px] w-full mx-auto px-4 sm:px-6 py-5 flex flex-col gap-4">
+      {/* Main Content Container — Fixed Viewport Height, Zero Page Growth */}
+      <main className="flex-1 min-h-0 max-w-[1440px] w-full mx-auto px-4 sm:px-6 py-4 flex flex-col gap-3.5 overflow-hidden">
         {/* Exclusive Reviewer Toolbar (only visible in Tech Reviewer role) */}
         {isReviewer && (
-          <ReviewerBar
-            isSubmitting={isSubmitting}
-            showInspector={showInspector}
-            onToggleInspector={() => setShowInspector((v) => !v)}
-            onRunTestScenario={handleRunTestScenario}
-            onQuickSendStep={(msg) => void handleSendTutorStep(msg, false)}
-          />
+          <div className="shrink-0">
+            <ReviewerBar
+              isSubmitting={isSubmitting}
+              showInspector={showInspector}
+              onToggleInspector={() => setShowInspector((v) => !v)}
+              onRunTestScenario={handleRunTestScenario}
+              onQuickSendStep={(msg) => void handleSendTutorStep(msg, false)}
+            />
+          </div>
         )}
 
-        {/* Split-Screen Workspace: Left Notebook + Right Socratic AI Tutor */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 min-h-[560px] lg:h-[620px]">
-          <div className="lg:col-span-7 h-full">
+        {/* Split-Screen Workspace: Left Solution Board + Right Socratic AI Tutor */}
+        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-4 overflow-hidden">
+          <div className="lg:col-span-6 h-full min-h-0 overflow-hidden">
             <WorkspacePane
               currentProblem={data.session.currentProblem}
               availableProblems={data.availableProblems}
@@ -198,11 +200,10 @@ export default function HomePage() {
               isSubmitting={isSubmitting}
               onSelectProblem={(pid) => void handleSelectProblem(pid)}
               onResetSession={() => void handleResetSession()}
-              onSubmitStep={(expr) => void handleSendTutorStep(expr, false)}
             />
           </div>
 
-          <div className="lg:col-span-5 h-full">
+          <div className="lg:col-span-6 h-full min-h-0 overflow-hidden">
             <TutorChat
               chatMessages={data.session.chatMessages}
               fsmState={data.session.fsmState}
@@ -218,13 +219,15 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Under the Hood AI Harness Inspector (only visible in Tech Reviewer role) */}
+        {/* Under the Hood AI Harness Inspector (compact collapsible drawer in Reviewer View) */}
         {isReviewer && showInspector && (
-          <HarnessInspector
-            traces={data.session.traces}
-            fsmState={data.session.fsmState}
-            llmStatus={data.llmStatus}
-          />
+          <div className="shrink-0 max-h-[220px] overflow-y-auto">
+            <HarnessInspector
+              traces={data.session.traces}
+              fsmState={data.session.fsmState}
+              llmStatus={data.llmStatus}
+            />
+          </div>
         )}
       </main>
 

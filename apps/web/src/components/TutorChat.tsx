@@ -71,11 +71,11 @@ export function TutorChat({
   const canRequestWorkedExample = fsmState.failedAttemptsOnCurrentStep >= 1;
 
   return (
-    <div className="bg-white rounded-3xl border border-black/[0.07] shadow-[0_2px_20px_rgba(0,0,0,0.03)] flex flex-col h-full overflow-hidden">
+    <div className="bg-white rounded-3xl border border-black/[0.07] shadow-[0_2px_20px_rgba(0,0,0,0.03)] flex flex-col h-full min-h-0 overflow-hidden">
       {/* Chat Top Header */}
-      <div className="px-6 py-4 border-b border-black/[0.06] flex flex-wrap items-center justify-between gap-2 bg-[#FBFBFD]">
+      <div className="px-6 py-3.5 border-b border-black/[0.06] flex flex-wrap items-center justify-between gap-2 bg-[#FBFBFD] shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-[#1D1D1F] text-white flex items-center justify-center">
+          <div className="w-8 h-8 rounded-xl bg-[#1D1D1F] text-white flex items-center justify-center shrink-0">
             <GraduationCap className="w-4 h-4" />
           </div>
           <div>
@@ -83,7 +83,7 @@ export function TutorChat({
               AI Math Tutor
             </h2>
             <p className="text-[11px] text-[#6E6E73]">
-              Guided Socratic Questions · Error Diagnosis
+              Enter equation steps or reply to Socratic questions
             </p>
           </div>
         </div>
@@ -99,10 +99,10 @@ export function TutorChat({
         </div>
       </div>
 
-      {/* Chat Messages Stream */}
+      {/* Chat Messages Stream (Strictly Scrollable Internally) */}
       <div
         ref={scrollRef}
-        className="flex-1 p-6 overflow-y-auto space-y-4 bg-[#FFFFFF]"
+        className="flex-1 min-h-0 p-5 overflow-y-auto space-y-4 bg-[#FFFFFF]"
       >
         {chatMessages.map((msg) => {
           const isTutor = msg.role === "tutor";
@@ -156,14 +156,14 @@ export function TutorChat({
         )}
       </div>
 
-      {/* Quick Pedagogical Chips & Chat Input */}
-      <div className="p-4 border-t border-black/[0.06] bg-[#FBFBFD] space-y-2.5">
+      {/* Unified Input Bar for Both Equation Steps & Dialogue */}
+      <div className="p-4 border-t border-black/[0.06] bg-[#FBFBFD] space-y-2.5 shrink-0">
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             disabled={isSubmitting}
             onClick={() => onSendMessage("Can you give me a hint?")}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-white border border-black/[0.08] hover:bg-black/[0.04] text-[#1D1D1F] transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white border border-black/[0.08] hover:bg-black/[0.04] text-[#1D1D1F] transition-colors cursor-pointer"
           >
             <Lightbulb className="w-3.5 h-3.5 text-[#D97706]" />
             Ask for a Hint
@@ -174,7 +174,7 @@ export function TutorChat({
               type="button"
               disabled={isSubmitting}
               onClick={onRequestWorkedExample}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-[#FFFBEB] border border-[#D97706]/30 hover:bg-[#FEF3C7] text-[#B45309] transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-[#FFFBEB] border border-[#D97706]/30 hover:bg-[#FEF3C7] text-[#B45309] transition-colors cursor-pointer"
               title="Unlocked after attempting: explains the step and generates a follow-up problem"
             >
               <BookOpenCheck className="w-3.5 h-3.5" />
@@ -188,17 +188,18 @@ export function TutorChat({
             type="text"
             value={messageInput}
             onChange={(e) => setMessageInput(e.target.value)}
-            placeholder="Reply to the tutor or enter an equation step..."
+            placeholder="Write your next step (e.g. 3x + 12 = 2x + 19) or answer the tutor..."
             disabled={isSubmitting}
             className="flex-1 px-4 py-2.5 rounded-2xl bg-white border border-black/[0.1] text-sm text-[#1D1D1F] placeholder:text-[#86868B] focus:outline-none focus:ring-2 focus:ring-[#0071E3]/25 focus:border-[#0071E3] transition-all"
           />
           <button
             type="submit"
             disabled={!messageInput.trim() || isSubmitting}
-            className="w-10 h-10 rounded-2xl bg-[#1D1D1F] hover:bg-black/80 disabled:opacity-40 text-white flex items-center justify-center transition-all cursor-pointer shrink-0"
-            aria-label="Send message"
+            className="px-4 h-10 rounded-2xl bg-[#0071E3] hover:bg-[#0077ED] disabled:opacity-40 text-white text-sm font-medium inline-flex items-center gap-1.5 transition-all cursor-pointer shrink-0 shadow-sm"
+            aria-label="Send step or message"
           >
-            <Send className="w-4 h-4" />
+            <span>Send</span>
+            <Send className="w-3.5 h-3.5" />
           </button>
         </form>
       </div>
