@@ -37,7 +37,7 @@ export function resolveActiveProviderInfo(): {
   ) {
     return {
       provider: "google",
-      modelName: process.env.LLM_MODEL || "gemini-2.5-flash",
+      modelName: process.env.LLM_MODEL || "gemini-3.8-flash",
     };
   }
 
