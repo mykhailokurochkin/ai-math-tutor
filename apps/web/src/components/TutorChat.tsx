@@ -53,6 +53,7 @@ export function TutorChat({
 }) {
   const [messageInput, setMessageInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -60,11 +61,18 @@ export function TutorChat({
     }
   }, [chatMessages, isSubmitting]);
 
+  useEffect(() => {
+    if (!isSubmitting) {
+      inputRef.current?.focus();
+    }
+  }, [isSubmitting]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!messageInput.trim() || isSubmitting) return;
     onSendMessage(messageInput.trim());
     setMessageInput("");
+    inputRef.current?.focus();
   };
 
   const phaseMeta = PHASE_LABELS[fsmState.phase] ?? PHASE_LABELS.SOLVING;
@@ -175,11 +183,12 @@ export function TutorChat({
 
         <form onSubmit={handleSubmit} className="flex items-center gap-2">
           <input
+            ref={inputRef}
             type="text"
             value={messageInput}
             onChange={(e) => setMessageInput(e.target.value)}
             placeholder="Write your next step (e.g. 3x + 12 = 2x + 19) or answer the tutor..."
-            disabled={isSubmitting}
+            autoFocus
             className="flex-1 px-4 py-2.5 rounded-2xl bg-white border border-black/[0.1] text-sm text-[#1D1D1F] placeholder:text-[#86868B] focus:outline-none focus:ring-2 focus:ring-[#0071E3]/25 focus:border-[#0071E3] transition-all"
           />
           <button
