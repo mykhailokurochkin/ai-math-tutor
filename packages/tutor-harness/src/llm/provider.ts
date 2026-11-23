@@ -126,6 +126,11 @@ export function synthesizeGuidedResponse(ctx: PromptContext): string {
   }
 
   if (!verification.hasMathExpression) {
+    const trimmedLower = studentMessage.trim().toLowerCase();
+    if (/^(hi|hello|hey|привіт|вітаю|добрий день)[!?.]*$/i.test(trimmedLower)) {
+      return `Hello! Let's work on solving **$${problem.equation}$** together. Look at the left side of the equation — how would you expand the expression to get started?`;
+    }
+
     const expectedB = Math.abs(verification.lhsExpected.b);
     if (
       studentMessage.includes(String(expectedB)) &&

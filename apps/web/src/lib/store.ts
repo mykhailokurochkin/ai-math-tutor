@@ -269,8 +269,8 @@ export function getOrInitProfileState(profileId: string) {
   const mistakes = db.mistakes[pid];
   const skillMastery = db.skillMastery[pid];
   const availableProblems = [
-    ...DEFAULT_PROBLEMS,
     ...(db.customProblems[pid] ?? []),
+    ...DEFAULT_PROBLEMS,
   ];
 
   const completedProblemsCount = session.completedProblemIds.length;

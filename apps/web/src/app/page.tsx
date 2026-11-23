@@ -38,7 +38,7 @@ interface AppStatePayload {
 
 export default function HomePage() {
   const [data, setData] = useState<AppStatePayload | null>(null);
-  const [activeProfileId, setActiveProfileId] = useState<string>("reviewer");
+  const [activeProfileId, setActiveProfileId] = useState<string>("student-default");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showInspector, setShowInspector] = useState(false);
   const [showProgressModal, setShowProgressModal] = useState(false);

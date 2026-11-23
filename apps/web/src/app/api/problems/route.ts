@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
       );
 
       const customList = currentState.db.customProblems[currentState.profile.id] ?? [];
-      customList.push(generated);
+      customList.unshift(generated);
       currentState.db.customProblems[currentState.profile.id] = customList;
       saveDatabase(currentState.db);
 

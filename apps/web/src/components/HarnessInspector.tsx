@@ -92,14 +92,18 @@ export function HarnessInspector({
               </span>
               <span
                 className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${
-                  latest.verification.isEquivalentToTarget
-                    ? "bg-[#30D158]/15 text-[#30D158]"
-                    : "bg-[#FF453A]/15 text-[#FF453A]"
+                  !latest.verification.hasMathExpression
+                    ? "bg-white/[0.1] text-[#D1D1D6]"
+                    : latest.verification.isEquivalentToTarget
+                      ? "bg-[#30D158]/15 text-[#30D158]"
+                      : "bg-[#FF453A]/15 text-[#FF453A]"
                 }`}
               >
-                {latest.verification.isEquivalentToTarget
-                  ? "EQUIVALENT"
-                  : "MISMATCH"}
+                {!latest.verification.hasMathExpression
+                  ? "TEXT / DIALOGUE"
+                  : latest.verification.isEquivalentToTarget
+                    ? "EQUIVALENT"
+                    : "MISMATCH"}
               </span>
             </div>
 

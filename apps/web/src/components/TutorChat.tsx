@@ -83,19 +83,9 @@ export function TutorChat({
               AI Math Tutor
             </h2>
             <p className="text-[11px] text-[#6E6E73]">
-              Enter equation steps or reply to Socratic questions
+              Enter equation steps or ask questions
             </p>
           </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span
-            className={`px-2.5 py-1 rounded-full text-xs font-medium ${phaseMeta.colorClass}`}
-          >
-            {phaseMeta.label}
-            {fsmState.phase === "SOCRATIC_GUIDE" &&
-              ` · Hint ${fsmState.hintLevel}/3`}
-          </span>
         </div>
       </div>
 

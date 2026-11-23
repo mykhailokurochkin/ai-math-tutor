@@ -25,38 +25,43 @@ export function generateIsomorphicProblem(
   let equation = "";
   let expectedRoot = 5;
 
-  // Attempt up to 15 randomized generations to ensure it differs from sourceProblem.equation
-  for (let attempt = 0; attempt < 15; attempt++) {
-    const root = randomInt(2, 11);
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const root = randomInt(2, 12);
 
     if (effectiveCategory === "SIGN_FLIP_OR_TRANSPOSITION") {
-      // Form: a*x + b = c*x + d
       const c = randomInt(2, 5);
       const a = c + randomInt(1, 4);
       const b = randomInt(-12, 12) || 5;
       const d = (a - c) * root + b;
+      if (d === 0) continue;
       const lhsB = b >= 0 ? `+ ${b}` : `- ${Math.abs(b)}`;
       const rhsD = d >= 0 ? `+ ${d}` : `- ${Math.abs(d)}`;
       equation = `${a}x ${lhsB} = ${c}x ${rhsD}`;
       expectedRoot = root;
     } else {
-      // Form: a(x + b) = cx + d (or a(x - b) = cx + d)
       const a = randomInt(2, 6);
-      const b = randomInt(2, 7);
+      const b = randomInt(2, 8);
       const c = randomInt(1, a - 1);
-      const useMinus = sourceProblem.equation.includes("-") && attempt % 2 === 1;
+      const useMinus = attempt % 3 === 1;
       const signedB = useMinus ? -b : b;
       const d = a * (root + signedB) - c * root;
-      if (d <= 0) continue;
+      if (d === 0) continue;
       const innerSign = signedB >= 0 ? `+ ${signedB}` : `- ${Math.abs(signedB)}`;
+      const rhsSign = d >= 0 ? `+ ${d}` : `- ${Math.abs(d)}`;
       const rhsX = c === 1 ? "x" : `${c}x`;
-      equation = `${a}(x ${innerSign}) = ${rhsX} + ${d}`;
+      equation = `${a}(x ${innerSign}) = ${rhsX} ${rhsSign}`;
       expectedRoot = root;
     }
 
-    if (equation !== sourceProblem.equation) {
+    if (equation && equation !== sourceProblem.equation) {
       break;
     }
+  }
+
+  // Fallback safeguard if loop didn't produce a distinct equation
+  if (!equation) {
+    equation = "4(x + 3) = 3x + 17";
+    expectedRoot = 5;
   }
 
   // CAS Verification: confirm generated equation solves to exact expected integer root
