@@ -1,75 +1,52 @@
-# Scaling Architecture: Web, iOS, and Android (Solo Engineer · 3-Week MVP Blueprint)
+# Scaling Plan: From Prototype to Production Platform (Web, iOS & Android)
 
-This document outlines the architectural strategy for scaling **AI Math Tutor** from this web prototype to a unified production platform across **Web, iOS, and Android** within a **3-week timeline by a single engineer**.
-
----
-
-## 1. Core Strategy: Monorepo with Shared TypeScript AI & Domain Core
-
-To deliver and maintain three platforms as a solo engineer without tripling the engineering workload, the system is architected as a **pnpm Workspace Monorepo** where **~80% of the code** (pedagogical harness, symbolic math verification, state machine, API types, and curriculum data) lives in shared, platform-agnostic packages:
-
-```text
-ai-math-tutor/
-├── packages/
-│   ├── tutor-harness/       # Shared Neuro-Symbolic Engine (CAS Verifier, Pedagogical FSM, Guardrails)
-│   ├── curriculum/          # USSR Mathematics Curriculum Graph (Grades 5-11 + Skanavi Olympiad Track)
-│   └── api-client/          # Typed RPC / Streaming Hooks shared by Web & Mobile
-├── apps/
-│   ├── web/                 # Next.js 15 (Web App, Parent Dashboard, API Backend)
-│   └── mobile/              # Expo (React Native) targeting iOS & Android from a single codebase
-```
-
-### Why This Works for a Solo Developer:
-- **Zero Duplication of Math/Pedagogy Logic:** `@cortex-js/compute-engine`, the input normalizer, the Pedagogical FSM, and the problem generator are written in pure TypeScript with zero DOM dependencies. They run identically inside Next.js API routes, Web Workers, and React Native (JavaScriptCore / Hermes).
-- **Single Backend Surface:** `apps/web` (or a dedicated Hono/FastAPI service) exposes stateless streaming endpoints (`/api/tutor/step`, `/api/voice`, `/api/vision`) consumed by Web, iOS, and Android clients alike.
+This document outlines how to scale **AI Math Tutor** from this web prototype into a full cross-platform product (**Web, iOS, and Android**) and expand its capabilities over time.
 
 ---
 
-## 2. Cross-Platform Feature Implementation Matrix
+## 1. Cross-Platform Architecture (Web, iOS & Android by One Engineer)
 
-| Feature | Web (`apps/web` · Next.js) | iOS & Android (`apps/mobile` · Expo) | Shared Core (`packages/*`) |
-| :--- | :--- | :--- | :--- |
-| **Math Rendering** | `KaTeX` (SSR + CSR) | `react-native-math-view` / WebView KaTeX | Canonical LaTeX AST via `normalizer.ts` |
-| **Interactive Math Input** | Custom Step Input / `MathLive` | Custom Native Math Keyboard Sheet | `extractEquationFromText()` & `asciiToLatex()` |
-| **Handwriting Whiteboard** | HTML5 Pointer Canvas | `@shopify/react-native-skia` + `react-native-gesture-handler` | Stroke serializer + Vision OCR (`Gemini 2.5 Flash` / `Mathpix`) |
-| **Voice Conversations** | Web Speech API / WebRTC | `expo-av` / LiveKit WebRTC | Multimodal Realtime Voice Session Manager |
-| **Offline & State Sync** | IndexedDB / Optimistic UI | `expo-sqlite` + TanStack Query | Shared Zod Schemas & Sync Queue |
-| **Auth & Cloud DB** | Supabase Auth + PostgreSQL (Drizzle) | Supabase Auth (`expo-secure-store`) | Row-Level Security (Student vs. Parent views) |
+Maintaining three separate codebases is unrealistic for a solo developer on a tight timeline. To keep development fast and maintainable, the project is already structured as a **pnpm monorepo** with a shared TypeScript core:
 
----
+- **Shared Core (`packages/tutor-harness`):** Contains the LangGraph state machine, symbolic math verifier, problem generator, and types. It has zero browser/DOM dependencies and runs identically on Web and mobile.
+- **Single Backend API:** Both Web and mobile clients talk to the same backend endpoints (`/api/tutor/step`, `/api/problems`, `/api/progress`) backed by **PostgreSQL (Supabase)** with role-based access for students, parents, and teachers.
+- **Web (`apps/web`):** Next.js 15 with KaTeX rendering, HTML5 Canvas whiteboard, and parent/teacher dashboards.
+- **iOS & Android (`apps/mobile`):** Built with **Expo (React Native)** so one mobile codebase compiles natively for both App Store and Google Play via **EAS Build**, reusing the shared types and API client.
 
-## 3. Key Subsystems for the Full Product Vision
-
-### A. Interactive Handwriting Whiteboard (iPad Pencil, Android Stylus, Web)
-- **Rendering Layer:** Using **`@shopify/react-native-skia`**, the same declarative `<Canvas>` and `<Path>` drawing code runs at 60–120fps on iOS (Metal), Android (Vulkan/OpenGL), and Web (CanvasKit WASM).
-- **Math OCR Pipeline:**
-  1. Student writes a solution step on the canvas.
-  2. When the student pauses or taps *"Check Step"*, the canvas exports a lightweight bounding-box PNG snapshot (`makeImageSnapshot()`).
-  3. A multimodal vision endpoint (**Gemini 2.5 Flash Vision** or **Mathpix API**) converts the handwritten step into normalized LaTeX (`3x + 4 = 2x + 19`).
-  4. The LaTeX is passed directly into `runTutorHarnessTurn()` in `@ai-math-tutor/tutor-harness` for deterministic symbolic verification.
-
-### B. Low-Latency Voice + Text Tutoring
-- **Text Mode:** Standard HTTP/SSE streaming through the Neuro-Symbolic Pedagogical Harness.
-- **Voice Mode:**
-  - **STT (Speech-to-Text):** Browser Web Speech API / Whisper API converts spoken math (*"three x plus four equals two x plus nineteen"*) into text, which `normalizer.ts` parses into `3x + 4 = 2x + 19`.
-  - **TTS (Text-to-Speech):** The tutor's Socratic response is converted from LaTeX-annotated text into natural spoken math strings before streaming audio back to the student.
-
-### C. Adaptive USSR Curriculum & Olympiad Track
-- **Knowledge Graph:** Topics are modeled as a Directed Acyclic Graph (DAG) following the classical Soviet progression (Kiselev *Arithmetic & Algebra*, Makarychev *Grades 7–9*, Kolmogorov *Grades 10–11*, and Skanavi *Olympiad Collection*).
-- **Mastery Progression:** A node only transitions to `MASTERED` when the student solves exercises without assistance—or, if an error occurred, solves a dynamically generated **isomorphic reinforcement problem** independently.
+### Core Platform Capabilities
+- **Interactive Handwriting Whiteboard:** Use **`@shopify/react-native-skia`** on iOS/Android (and HTML5 Canvas on Web) for smooth finger/stylus drawing. When the student finishes writing a step, a snapshot is sent to **Gemini Vision** (or **Mathpix**) to convert handwriting into LaTeX, which feeds directly into the existing LangGraph verifier.
+- **Voice Tutoring:** Add Speech-to-Text (Whisper / Web Speech API) and Text-to-Speech (or Realtime Voice APIs) on top of the existing tutor loop so students can talk through problems naturally.
 
 ---
 
-## 4. Realistic 3-Week Delivery Roadmap (Solo Engineer)
+## 2. Realistic 3-Week MVP Delivery Plan
 
-### Week 1: Core Engine, Database & Web MVP
-- **Days 1–3:** Finalize `@ai-math-tutor/tutor-harness` (Symbolic CAS verifier, Pedagogical FSM, Socratic Guardrails, Isomorphic Problem Generator) + PostgreSQL/Supabase schema (Students, Parents, Sessions, Mistakes, Curriculum Graph).
-- **Days 4–7:** Build and deploy the complete Web application (`apps/web`) including Step-by-Step Workspace, Socratic Chat, Interactive Whiteboard (Canvas + Vision OCR), and Parent/Student Progress Dashboard.
+- **Week 1 — Backend, Auth & Full Web App:** Migrate storage to PostgreSQL (Supabase), add authentication and Student/Parent roles, and ship the complete Web version with handwriting canvas and progress tracking.
+- **Week 2 — Mobile App (iOS & Android):** Spin up `apps/mobile` with Expo Router sharing the same backend and harness, then integrate the Skia handwriting whiteboard and voice input/output.
+- **Week 3 — Polish, QA & Store Releases:** Expand the core algebra curriculum, test cross-platform edge cases, and deploy to **Vercel** (Web), **TestFlight** (iOS), and **Google Play** (Android).
 
-### Week 2: iOS & Android App via Expo (`apps/mobile`)
-- **Days 8–10:** Initialize `apps/mobile` with **Expo Router**, consuming `@ai-math-tutor/tutor-harness` and `@ai-math-tutor/api-client`. Implement responsive tablet/phone layouts for the Math Notebook and Tutor Chat.
-- **Days 11–14:** Integrate `@shopify/react-native-skia` for native stylus/touch handwriting whiteboard and `expo-speech` / Whisper for voice interaction.
+---
 
-### Week 3: Polish, Cross-Platform QA & App Store / Play Store Deployment
-- **Days 15–17:** Expand curriculum problem templates (Grades 5–9 + Olympiad challenges), add parent progress alerts and assessment mode.
-- **Days 18–21:** Automated E2E verification, **EAS Build & EAS Submit** for TestFlight (iOS) and Google Play Internal/Production track (Android), plus Vercel production deployment for Web.
+## 3. Product & Business Scaling Directions
+
+### A. AI Curriculum Authoring Tool (Teachers, Directors & Self-Learners)
+Instead of hardcoding every lesson manually, the platform can include a dedicated **Curriculum Builder** for teachers, school directors, or advanced self-learners. They upload textbook chapters, PDFs, or problem sets, and an AI ingestion agent parses the material, extracts the rules, generates CAS-verified exercise templates, and publishes a ready-to-use interactive module directly to the platform.
+
+### B. Expanding Beyond Algebra: Geometry & Visual Math
+Algebra relies primarily on symbolic equations, whereas **Geometry** is a distinct visual domain. Scaling into geometry means adding an interactive geometric canvas (built on Skia/SVG) where students can construct shapes, label angles, and write multi-step proofs—while a multimodal agent verifies both the diagram and the logical reasoning behind each theorem.
+
+### C. Monetization, Subscriptions & Billing
+To turn the platform into a sustainable product:
+- **Pricing Tiers:** Free tier (limited daily sessions) → **Student / Family Subscription** (unlimited AI tutoring, voice mode, handwriting whiteboard, parent progress reports) → **School / B2B Licenses** (teacher authoring tools and class analytics).
+- **Payment Infrastructure:** **Stripe** for Web subscriptions and B2B billing, paired with **RevenueCat** to manage iOS App Store and Google Play in-app subscriptions from a single unified backend webhook.
+
+---
+
+## Overall Scaling Directions (Summary)
+
+- **Platforms:** Shared TypeScript monorepo (`Next.js` for Web + `Expo / React Native` for iOS & Android).
+- **Core Input Modes:** Text + LaTeX → Handwriting Whiteboard (`Skia` + Vision OCR) → Voice Conversations.
+- **Infrastructure:** Local JSON prototype → `PostgreSQL / Supabase` + Auth + Student/Parent/Teacher roles.
+- **Content Creation:** AI-assisted Curriculum Builder allowing teachers, directors, or learners to upload materials and auto-generate new modules.
+- **Subject Expansion:** Algebra → Geometry (interactive diagrams & proofs) → Olympiad & Competition tracks.
+- **Monetization:** Freemium subscriptions and family/school plans via **Stripe** (Web) and **RevenueCat** (iOS/Android).
