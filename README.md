@@ -2,6 +2,9 @@
 
 An interactive AI mathematics tutor inspired by the classical USSR algebra curriculum. Built with **Next.js**, **LangGraph (`@langchain/langgraph`)**, **CortexJS Compute Engine**, and **Vercel AI SDK**.
 
+- **Live Demo:** [https://ai-math-tutor-sable.vercel.app](https://ai-math-tutor-sable.vercel.app)
+- **Scaling Blueprint (Web, iOS, Android):** [`docs/SCALING_ARCHITECTURE.md`](./docs/SCALING_ARCHITECTURE.md)
+
 ---
 
 ## Quick Start
