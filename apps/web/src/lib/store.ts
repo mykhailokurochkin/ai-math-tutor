@@ -334,9 +334,9 @@ function resolveDbFilePath(): string {
     if (!fs.existsSync(localDataDir)) {
       fs.mkdirSync(localDataDir, { recursive: true });
     }
-    return path.join(localDataDir, "tutor-store-v5.json");
+    return path.join(localDataDir, "tutor-store-v6.json");
   } catch {
-    return path.join("/tmp", "ai-math-tutor-store-v5.json");
+    return path.join("/tmp", "ai-math-tutor-store-v6.json");
   }
 }
 

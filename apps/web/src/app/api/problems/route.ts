@@ -85,7 +85,14 @@ export async function POST(req: NextRequest) {
     }
 
     if (body.action === "custom_problem" && body.customEquation) {
-      const customProb = createCustomMathProblem(body.customEquation);
+      const preferredTopic =
+        body.topicFilter && body.topicFilter !== "all"
+          ? body.topicFilter
+          : undefined;
+      const customProb = createCustomMathProblem(
+        body.customEquation,
+        preferredTopic
+      );
       if (!customProb) {
         return NextResponse.json(
           {

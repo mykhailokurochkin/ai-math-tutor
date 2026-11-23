@@ -4,8 +4,8 @@
     {
       "id": "topic-distributive",
       "errorCategory": "DISTRIBUTIVE_PROPERTY",
-      "titleUk": "Distributive Property (Equations with Parentheses)",
-      "titleEn": "Distributive Property (Equations with Parentheses)",
+      "titleUk": "Distributive Property",
+      "titleEn": "Distributive Property",
       "formulaLatex": "a(b + c) = ab + ac",
       "ussrMethodologyNote": "Kiselev's Elementary Algebra: To multiply a factor by a sum in parentheses, multiply that factor by every term inside the parentheses individually and add the products. A common mistake is multiplying only the first term.",
       "socraticHints": {
@@ -17,8 +17,8 @@
     {
       "id": "topic-transposition",
       "errorCategory": "SIGN_FLIP_OR_TRANSPOSITION",
-      "titleUk": "Transposition of Terms & Combining Like Terms",
-      "titleEn": "Transposition of Terms & Combining Like Terms",
+      "titleUk": "Transposition & Signs",
+      "titleEn": "Transposition & Signs",
       "formulaLatex": "A + B = C \\implies A = C - B",
       "ussrMethodologyNote": "When moving any term from one side of an equation to the other across '=', its sign must be reversed (plus becomes minus, minus becomes plus).",
       "socraticHints": {
@@ -28,10 +28,23 @@
       }
     },
     {
-      "id": "topic-olympiad",
+      "id": "topic-like-terms",
       "errorCategory": "COMBINE_LIKE_TERMS",
-      "titleUk": "Multi-Bracket Equations (Olympiad Prep)",
-      "titleEn": "Multi-Bracket Equations (Olympiad Prep)",
+      "titleUk": "Combining Like Terms",
+      "titleEn": "Combining Like Terms",
+      "formulaLatex": "ax + bx = (a + b)x",
+      "ussrMethodologyNote": "To combine like terms, add or subtract their numerical coefficients and attach the common variable part.",
+      "socraticHints": {
+        "level1": "Group the terms containing $x$ together and check your arithmetic when adding or subtracting their coefficients.",
+        "level2Template": "Look at how you combined the $x$-terms or the constant numbers. One of those calculations has a small arithmetic slip.",
+        "level3Template": "Recalculate the combined coefficient of $x$ and the constant term, then write the simplified equation."
+      }
+    },
+    {
+      "id": "topic-olympiad",
+      "errorCategory": "DIVISION_OR_ISOLATION",
+      "titleUk": "Multi-Bracket Equations",
+      "titleEn": "Multi-Bracket Equations",
       "formulaLatex": "a(mx + b) - k(x - c) = dx + e",
       "ussrMethodologyNote": "When expanding multiple brackets, pay special attention to negative multipliers before parentheses: subtracting a bracket reverses the sign of every term inside it.",
       "socraticHints": {
@@ -136,6 +149,54 @@
       "variable": "x",
       "expectedRoot": 6,
       "targetSkill": "SIGN_FLIP_OR_TRANSPOSITION",
+      "difficulty": 2
+    },
+    {
+      "id": "prob-liketerms-1",
+      "topicId": "topic-like-terms",
+      "topicTitle": "Combining Like Terms",
+      "gradeLevel": "Grade 7 Algebra",
+      "equation": "5x + 3x - 7 = 25",
+      "latex": "5x + 3x - 7 = 25",
+      "variable": "x",
+      "expectedRoot": 4,
+      "targetSkill": "COMBINE_LIKE_TERMS",
+      "difficulty": 1
+    },
+    {
+      "id": "prob-liketerms-2",
+      "topicId": "topic-like-terms",
+      "topicTitle": "Combining Like Terms",
+      "gradeLevel": "Grade 7 Algebra",
+      "equation": "9x - 4x + 6 = 31",
+      "latex": "9x - 4x + 6 = 31",
+      "variable": "x",
+      "expectedRoot": 5,
+      "targetSkill": "COMBINE_LIKE_TERMS",
+      "difficulty": 1
+    },
+    {
+      "id": "prob-liketerms-3",
+      "topicId": "topic-like-terms",
+      "topicTitle": "Combining Like Terms",
+      "gradeLevel": "Grade 7 Algebra",
+      "equation": "6x + 2x - 11 = 3x + 19",
+      "latex": "6x + 2x - 11 = 3x + 19",
+      "variable": "x",
+      "expectedRoot": 6,
+      "targetSkill": "COMBINE_LIKE_TERMS",
+      "difficulty": 2
+    },
+    {
+      "id": "prob-liketerms-4",
+      "topicId": "topic-like-terms",
+      "topicTitle": "Combining Like Terms",
+      "gradeLevel": "Grade 7 Algebra",
+      "equation": "7x - 2x + 8 = 2x + 29",
+      "latex": "7x - 2x + 8 = 2x + 29",
+      "variable": "x",
+      "expectedRoot": 7,
+      "targetSkill": "COMBINE_LIKE_TERMS",
       "difficulty": 2
     },
     {

@@ -10,23 +10,16 @@ import {
   ChevronDown,
   Check,
   Plus,
+  Layers,
 } from "lucide-react";
 import { MathFormula } from "./MathRenderer";
-import type {
-  MathProblem,
-  FSMState,
-  CurriculumTopicId,
+import {
+  STATIC_CURRICULUM_TOPICS,
+  type MathProblem,
+  type FSMState,
+  type CurriculumTopicId,
 } from "@ai-math-tutor/tutor-harness";
 import type { NotebookStepRecord } from "@/lib/store";
-
-const TOPICS: Array<{
-  id: CurriculumTopicId;
-  label: string;
-}> = [
-  { id: "topic-distributive", label: "Distributive Property" },
-  { id: "topic-transposition", label: "Transposition & Signs" },
-  { id: "topic-olympiad", label: "Multi-Bracket" },
-];
 
 export function WorkspacePane({
   currentProblem,
@@ -51,29 +44,40 @@ export function WorkspacePane({
   isSubmitting: boolean;
   onSelectProblem: (problemId: string) => void;
   onGenerateMoreProblems: (topicId: CurriculumTopicId) => Promise<void>;
-  onSubmitCustomProblem: (customEquation: string) => void;
+  onSubmitCustomProblem: (
+    customEquation: string,
+    topicId: CurriculumTopicId
+  ) => void;
   onResetSession: () => void;
 }) {
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [openMenu, setOpenMenu] = useState<"none" | "topic" | "exercise">(
+    "none"
+  );
   const [isGeneratingMore, setIsGeneratingMore] = useState(false);
   const [customEqInput, setCustomEqInput] = useState("");
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const headerControlsRef = useRef<HTMLDivElement>(null);
   const listScrollRef = useRef<HTMLDivElement>(null);
 
   const activeTopicId: CurriculumTopicId =
-    (currentProblem.topicId as CurriculumTopicId) || "topic-distributive";
+    STATIC_CURRICULUM_TOPICS.some((t) => t.id === currentProblem.topicId)
+      ? (currentProblem.topicId as CurriculumTopicId)
+      : "topic-distributive";
+
+  const activeTopicMeta =
+    STATIC_CURRICULUM_TOPICS.find((t) => t.id === activeTopicId) ??
+    STATIC_CURRICULUM_TOPICS[0];
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(e.target as Node)
+        headerControlsRef.current &&
+        !headerControlsRef.current.contains(e.target as Node)
       ) {
-        setDropdownOpen(false);
+        setOpenMenu("none");
       }
     };
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setDropdownOpen(false);
+      if (e.key === "Escape") setOpenMenu("none");
     };
     document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("keydown", handleKeyDown);
@@ -83,23 +87,33 @@ export function WorkspacePane({
     };
   }, []);
 
-  // Only show exercises belonging to the currently selected topic
+  // Filter exercises strictly to the active topic
   const topicProblems = availableProblems.filter(
     (p) => p.topicId === activeTopicId
   );
 
+  const currentIndexInTopic = topicProblems.findIndex(
+    (p) => p.id === currentProblem.id
+  );
+
+  const solvedInActiveTopic = topicProblems.filter(
+    (p) => problemStatusMap[p.id] === "SOLVED"
+  ).length;
+
   const handleSwitchTopic = (newTopicId: CurriculumTopicId) => {
+    setOpenMenu("none");
     if (newTopicId === activeTopicId || isSubmitting) return;
-    setDropdownOpen(false);
+
     const matching = availableProblems.filter((p) => p.topicId === newTopicId);
     if (matching.length > 0) {
-      // Pick first unsolved or first exercise in that topic
-      const target =
-        matching.find(
-          (p) =>
-            problemStatusMap[p.id] === "IN_PROGRESS" ||
-            problemStatusMap[p.id] === "NOT_STARTED"
-        ) ?? matching[0];
+      // Restore in-progress problem in that topic if any, else first unsolved, else first problem
+      const inProgress = matching.find(
+        (p) => problemStatusMap[p.id] === "IN_PROGRESS"
+      );
+      const firstUnsolved = matching.find(
+        (p) => problemStatusMap[p.id] === "NOT_STARTED"
+      );
+      const target = inProgress ?? firstUnsolved ?? matching[0];
       onSelectProblem(target.id);
     }
   };
@@ -110,6 +124,7 @@ export function WorkspacePane({
     setIsGeneratingMore(true);
     try {
       await onGenerateMoreProblems(activeTopicId);
+      // Keep dropdown open and scroll smoothly to newly added exercises
       setTimeout(() => {
         if (listScrollRef.current) {
           listScrollRef.current.scrollTo({
@@ -126,105 +141,184 @@ export function WorkspacePane({
   const handleCustomSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!customEqInput.trim()) return;
-    onSubmitCustomProblem(customEqInput.trim());
+    onSubmitCustomProblem(customEqInput.trim(), activeTopicId);
     setCustomEqInput("");
-    setDropdownOpen(false);
+    setOpenMenu("none");
   };
 
-  const currentIndexInTopic = topicProblems.findIndex(
-    (p) => p.id === currentProblem.id
-  );
+  const currentStatus = problemStatusMap[currentProblem.id] ?? "NOT_STARTED";
 
   return (
     <div className="bg-white rounded-3xl border border-black/[0.07] shadow-[0_2px_20px_rgba(0,0,0,0.03)] flex flex-col h-full min-h-0 overflow-hidden">
-      {/* Row 1: Dedicated Topic Switcher (Separate from Exercise Dropdown) */}
-      <div className="px-5 pt-3.5 pb-2.5 border-b border-black/[0.05] bg-[#FBFBFD] flex flex-wrap items-center justify-between gap-2 shrink-0">
-        <div className="inline-flex items-center p-1 rounded-full bg-[#F5F5F7] border border-black/[0.06] max-w-full overflow-x-auto">
-          {TOPICS.map((t) => {
-            const isActive = t.id === activeTopicId;
-            const topicItems = availableProblems.filter((p) => p.topicId === t.id);
-            const solvedInTopic = topicItems.filter(
-              (p) => problemStatusMap[p.id] === "SOLVED"
-            ).length;
-
-            return (
-              <button
-                key={t.id}
-                type="button"
-                disabled={isSubmitting}
-                onClick={() => handleSwitchTopic(t.id)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all cursor-pointer shrink-0 ${
-                  isActive
-                    ? "bg-white text-[#1D1D1F] shadow-sm font-semibold"
-                    : "text-[#6E6E73] hover:text-[#1D1D1F]"
-                }`}
-              >
-                <span>{t.label}</span>
-                {solvedInTopic > 0 && (
-                  <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded-full bg-[#ECFDF3] text-[#1D9E5E]">
-                    {solvedInTopic}✓
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        <button
-          onClick={onResetSession}
-          disabled={isSubmitting}
-          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium text-[#6E6E73] hover:text-[#1D1D1F] bg-black/[0.04] hover:bg-black/[0.08] transition-colors cursor-pointer shrink-0"
-          title="Reset current exercise"
-        >
-          <RotateCcw className="w-3.5 h-3.5" />
-          Reset
-        </button>
-      </div>
-
-      {/* Row 2: Exercise Dropdown for the Active Topic Only + Equation Card */}
-      <div className="px-6 py-4 border-b border-black/[0.06] bg-gradient-to-b from-[#FBFBFD] to-white shrink-0 space-y-3">
-        <div className="flex items-center justify-between gap-3" ref={dropdownRef}>
-          <div className="relative min-w-0 flex-1">
+      {/* Unified Header Row with Paired Custom Dropdowns: [1. Topic Dropdown] + [2. Exercise Dropdown] + [Reset] */}
+      <div
+        ref={headerControlsRef}
+        className="px-5 py-3.5 border-b border-black/[0.06] bg-[#FBFBFD] flex flex-wrap items-center justify-between gap-2.5 shrink-0"
+      >
+        <div className="flex flex-wrap items-center gap-2 min-w-0 flex-1">
+          {/* DROPDOWN 1: TOPIC SELECTOR */}
+          <div className="relative">
             <button
               type="button"
               disabled={isSubmitting}
-              onClick={() => setDropdownOpen((v) => !v)}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#F5F5F7] hover:bg-black/[0.06] border border-black/[0.06] transition-colors cursor-pointer max-w-full group"
+              onClick={() =>
+                setOpenMenu((prev) => (prev === "topic" ? "none" : "topic"))
+              }
+              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs transition-all cursor-pointer ${
+                openMenu === "topic"
+                  ? "bg-white border-[#0071E3] shadow-sm text-[#1D1D1F]"
+                  : "bg-[#F5F5F7] hover:bg-black/[0.06] border-black/[0.06] text-[#1D1D1F]"
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5 text-[#0071E3] shrink-0" />
+              <span className="text-[#6E6E73] font-medium">Topic:</span>
+              <span className="font-semibold text-[#1D1D1F] truncate max-w-[150px] sm:max-w-[190px]">
+                {activeTopicMeta.shortTitle}
+              </span>
+              <span
+                className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                  solvedInActiveTopic > 0
+                    ? "bg-[#ECFDF3] text-[#1D9E5E]"
+                    : "bg-black/[0.05] text-[#6E6E73]"
+                }`}
+              >
+                {solvedInActiveTopic}/{topicProblems.length}
+              </span>
+              <ChevronDown
+                className={`w-3.5 h-3.5 text-[#6E6E73] transition-transform duration-150 shrink-0 ${
+                  openMenu === "topic" ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {/* Topic Popover Menu */}
+            {openMenu === "topic" && (
+              <div className="absolute left-0 mt-1.5 w-[340px] sm:w-[380px] rounded-2xl bg-white/95 backdrop-blur-xl shadow-[0_14px_40px_rgba(0,0,0,0.14)] border border-black/[0.08] p-2 z-40 space-y-1">
+                <div className="px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-[#86868B]">
+                  Select Algebra Topic
+                </div>
+                {STATIC_CURRICULUM_TOPICS.map((topic) => {
+                  const isSelected = topic.id === activeTopicId;
+                  const items = availableProblems.filter(
+                    (p) => p.topicId === topic.id
+                  );
+                  const solvedCount = items.filter(
+                    (p) => problemStatusMap[p.id] === "SOLVED"
+                  ).length;
+                  const inProgressCount = items.filter(
+                    (p) => problemStatusMap[p.id] === "IN_PROGRESS"
+                  ).length;
+
+                  return (
+                    <button
+                      key={topic.id}
+                      type="button"
+                      onClick={() => handleSwitchTopic(topic.id)}
+                      className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center justify-between gap-3 transition-colors cursor-pointer ${
+                        isSelected
+                          ? "bg-[#0071E3]/[0.08] text-[#1D1D1F]"
+                          : "hover:bg-[#F5F5F7] text-[#1D1D1F]"
+                      }`}
+                    >
+                      <div className="min-w-0 space-y-0.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold text-[#1D1D1F]">
+                            {topic.title}
+                          </span>
+                          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-black/[0.05] text-[#6E6E73]">
+                            Level {topic.difficulty}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-[#6E6E73]">
+                          Rule:{" "}
+                          <MathFormula
+                            latex={topic.formulaLatex}
+                            className="text-[#1D1D1F]"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        {inProgressCount > 0 && (
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#0071E3]/10 text-[#0071E3]">
+                            Active
+                          </span>
+                        )}
+                        <span
+                          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                            solvedCount > 0
+                              ? "bg-[#ECFDF3] text-[#1D9E5E]"
+                              : "bg-black/[0.05] text-[#6E6E73]"
+                          }`}
+                        >
+                          {solvedCount}/{items.length} solved
+                        </span>
+                        {isSelected && (
+                          <div className="w-5 h-5 rounded-full bg-[#0071E3] text-white flex items-center justify-center">
+                            <Check className="w-3 h-3" />
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* DROPDOWN 2: EXERCISE SELECTOR (WITHIN ACTIVE TOPIC) */}
+          <div className="relative">
+            <button
+              type="button"
+              disabled={isSubmitting}
+              onClick={() =>
+                setOpenMenu((prev) =>
+                  prev === "exercise" ? "none" : "exercise"
+                )
+              }
+              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs transition-all cursor-pointer ${
+                openMenu === "exercise"
+                  ? "bg-white border-[#0071E3] shadow-sm text-[#1D1D1F]"
+                  : "bg-[#F5F5F7] hover:bg-black/[0.06] border-black/[0.06] text-[#1D1D1F]"
+              }`}
             >
               <BookMarked className="w-3.5 h-3.5 text-[#0071E3] shrink-0" />
-              <span className="text-xs font-medium text-[#6E6E73] shrink-0">
-                Exercise {currentIndexInTopic >= 0 ? currentIndexInTopic + 1 : 1} of{" "}
-                {topicProblems.length}:
+              <span className="text-[#6E6E73] font-medium shrink-0">
+                #{currentIndexInTopic >= 0 ? currentIndexInTopic + 1 : 1}:
               </span>
-              <span className="text-xs font-semibold text-[#1D1D1F] shrink-0">
+              <span className="font-semibold text-[#1D1D1F] shrink-0">
                 <MathFormula latex={currentProblem.latex} />
               </span>
+              {currentStatus === "SOLVED" && (
+                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#ECFDF3] text-[#1D9E5E] shrink-0">
+                  ✓
+                </span>
+              )}
               {currentProblem.isReinforcement && (
                 <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-[#0071E3]/10 text-[#0071E3] shrink-0">
                   Follow-Up
                 </span>
               )}
               <ChevronDown
-                className={`w-3.5 h-3.5 text-[#6E6E73] group-hover:text-[#1D1D1F] transition-transform duration-150 shrink-0 ${
-                  dropdownOpen ? "rotate-180" : ""
+                className={`w-3.5 h-3.5 text-[#6E6E73] transition-transform duration-150 shrink-0 ${
+                  openMenu === "exercise" ? "rotate-180" : ""
                 }`}
               />
             </button>
 
-            {/* Custom Apple Popover Menu — Shows ONLY Exercises of Active Topic */}
-            {dropdownOpen && (
-              <div className="absolute left-0 mt-1.5 w-[350px] sm:w-[430px] rounded-2xl bg-white/95 backdrop-blur-xl shadow-[0_14px_40px_rgba(0,0,0,0.14)] border border-black/[0.08] p-2.5 z-40 space-y-2">
+            {/* Exercise Popover Menu (Shows 4 at a time + Generate 4 More without closing) */}
+            {openMenu === "exercise" && (
+              <div className="absolute left-0 mt-1.5 w-[350px] sm:w-[420px] rounded-2xl bg-white/95 backdrop-blur-xl shadow-[0_14px_40px_rgba(0,0,0,0.14)] border border-black/[0.08] p-2.5 z-40 space-y-2">
                 <div className="flex items-center justify-between px-2 pt-0.5">
                   <span className="text-[11px] font-semibold uppercase tracking-wider text-[#86868B]">
-                    {TOPICS.find((t) => t.id === activeTopicId)?.label} (
-                    {topicProblems.length} exercises)
+                    {activeTopicMeta.shortTitle} · {topicProblems.length} Exercises
                   </span>
                 </div>
 
                 {/* Scrollable List of 4 Visible Exercises at a time */}
                 <div
                   ref={listScrollRef}
-                  className="max-h-[232px] overflow-y-auto space-y-1 pr-0.5"
+                  className="max-h-[224px] overflow-y-auto space-y-1 pr-0.5"
                 >
                   {topicProblems.map((prob, idx) => {
                     const isSelected = prob.id === currentProblem.id;
@@ -235,7 +329,7 @@ export function WorkspacePane({
                         key={prob.id}
                         type="button"
                         onClick={() => {
-                          setDropdownOpen(false);
+                          setOpenMenu("none");
                           if (prob.id !== currentProblem.id) {
                             onSelectProblem(prob.id);
                           }
@@ -287,7 +381,7 @@ export function WorkspacePane({
                   })}
                 </div>
 
-                {/* Generate 4 More Exercises for This Topic (Does NOT close dropdown!) */}
+                {/* Generate 4 More Exercises in This Topic (Stays Open!) */}
                 <button
                   type="button"
                   disabled={isGeneratingMore}
@@ -296,11 +390,11 @@ export function WorkspacePane({
                 >
                   <Plus className="w-3.5 h-3.5" />
                   {isGeneratingMore
-                    ? "Generating 4 More..."
-                    : "Generate 4 More in This Topic"}
+                    ? "Generating 4 Exercises..."
+                    : "Generate 4 More Exercises"}
                 </button>
 
-                {/* Custom Equation Form */}
+                {/* Custom Equation Input */}
                 <form
                   onSubmit={handleCustomSubmit}
                   className="pt-2 border-t border-black/[0.06] flex items-center gap-1.5"
@@ -323,9 +417,32 @@ export function WorkspacePane({
               </div>
             )}
           </div>
+        </div>
 
+        {/* Reset Current Exercise Button */}
+        <button
+          onClick={onResetSession}
+          disabled={isSubmitting}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-[#6E6E73] hover:text-[#1D1D1F] bg-black/[0.04] hover:bg-black/[0.08] transition-colors cursor-pointer shrink-0"
+          title="Reset current exercise"
+        >
+          <RotateCcw className="w-3.5 h-3.5" />
+          Reset
+        </button>
+      </div>
+
+      {/* Hero Active Problem Statement Card */}
+      <div className="px-6 py-4 border-b border-black/[0.06] bg-gradient-to-b from-[#FBFBFD] to-white shrink-0">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+          <span className="text-[11px] font-medium text-[#6E6E73]">
+            {activeTopicMeta.title} · Rule:{" "}
+            <MathFormula
+              latex={activeTopicMeta.formulaLatex}
+              className="text-[#1D1D1F]"
+            />
+          </span>
           {currentProblem.isReinforcement && (
-            <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-[#0071E3]/10 text-[#0071E3] shrink-0">
+            <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-[#0071E3]/10 text-[#0071E3]">
               <Sparkles className="w-3 h-3" />
               Follow-Up Practice
             </span>

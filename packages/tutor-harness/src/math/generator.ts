@@ -9,37 +9,51 @@ function randomInt(min: number, max: number): number {
 export type CurriculumTopicId =
   | "topic-distributive"
   | "topic-transposition"
+  | "topic-like-terms"
   | "topic-olympiad";
 
 export const STATIC_CURRICULUM_TOPICS: Array<{
   id: CurriculumTopicId;
   title: string;
   shortTitle: string;
+  formulaLatex: string;
   gradeLevel: string;
   targetSkill: ErrorCategory;
   difficulty: 1 | 2 | 3;
 }> = [
   {
     id: "topic-distributive",
-    title: "Linear Equations with Parentheses (Distributive Property)",
+    title: "Distributive Property",
     shortTitle: "Distributive Property",
-    gradeLevel: "Grade 7 Algebra · Classical USSR Curriculum",
+    formulaLatex: "a(b + c) = ab + ac",
+    gradeLevel: "Grade 7 Algebra",
     targetSkill: "DISTRIBUTIVE_PROPERTY",
     difficulty: 1,
   },
   {
     id: "topic-transposition",
-    title: "Transposition of Terms & Combining Like Terms",
+    title: "Transposition & Signs",
     shortTitle: "Transposition & Signs",
-    gradeLevel: "Grade 7 Algebra · Classical USSR Curriculum",
+    formulaLatex: "A + B = C \\implies A = C - B",
+    gradeLevel: "Grade 7 Algebra",
     targetSkill: "SIGN_FLIP_OR_TRANSPOSITION",
+    difficulty: 1,
+  },
+  {
+    id: "topic-like-terms",
+    title: "Combining Like Terms",
+    shortTitle: "Combining Like Terms",
+    formulaLatex: "ax + bx = (a + b)x",
+    gradeLevel: "Grade 7 Algebra",
+    targetSkill: "COMBINE_LIKE_TERMS",
     difficulty: 2,
   },
   {
     id: "topic-olympiad",
-    title: "Olympiad Prep · Multi-Bracket Linear Equations",
-    shortTitle: "Multi-Bracket (Olympiad)",
-    gradeLevel: "Grade 7-8 · Skanavi Collection",
+    title: "Multi-Bracket Equations",
+    shortTitle: "Multi-Bracket Equations",
+    formulaLatex: "a(mx + b) - k(x - c) = dx + e",
+    gradeLevel: "Grade 7-8 · Skanavi",
     targetSkill: "DISTRIBUTIVE_PROPERTY",
     difficulty: 3,
   },
@@ -74,6 +88,22 @@ export function generateVerifiedProblemForTopic(
       const lhsB = b >= 0 ? `+ ${b}` : `- ${Math.abs(b)}`;
       const rhsD = d >= 0 ? `+ ${d}` : `- ${Math.abs(d)}`;
       equation = `${a}x ${lhsB} = ${c}x ${rhsD}`;
+      expectedRoot = root;
+    } else if (topicId === "topic-like-terms") {
+      // Form: a*x + b*x ± c = d*x ± e
+      const a = randomInt(3, 8);
+      const b = randomInt(2, 5);
+      const useSub = attempt % 2 === 1 && a > b + 1;
+      const netLeft = useSub ? a - b : a + b;
+      const d = randomInt(1, netLeft - 1);
+      const c = randomInt(-12, 12) || 6;
+      const e = (netLeft - d) * root + c;
+      if (e === 0) continue;
+      const opB = useSub ? `- ${b}x` : `+ ${b}x`;
+      const lhsC = c >= 0 ? `+ ${c}` : `- ${Math.abs(c)}`;
+      const rhsX = d === 1 ? "x" : `${d}x`;
+      const rhsE = e >= 0 ? `+ ${e}` : `- ${Math.abs(e)}`;
+      equation = `${a}x ${opB} ${lhsC} = ${rhsX} ${rhsE}`;
       expectedRoot = root;
     } else if (topicId === "topic-olympiad") {
       // Form: a(m*x + b) - k(x - c) = d*x + e
@@ -151,7 +181,7 @@ export function generateVerifiedProblemForTopic(
 }
 
 /**
- * Generates a batch of `count` (e.g., 4) unique, CAS-verified exercises for the dropdown.
+ * Generates a batch of `count` (e.g., 4) unique, CAS-verified exercises for the requested topic.
  */
 export function generateProblemBatch(
   topicFilter: CurriculumTopicId | "all",
@@ -163,6 +193,7 @@ export function generateProblemBatch(
   const topicCycle: CurriculumTopicId[] = [
     "topic-distributive",
     "topic-transposition",
+    "topic-like-terms",
     "topic-olympiad",
   ];
 
@@ -188,17 +219,29 @@ export function generateIsomorphicProblem(
   targetErrorCategory: ErrorCategory,
   _seedIndex = 0
 ): MathProblem {
-  let targetTopic: CurriculumTopicId = "topic-distributive";
+  const validTopicIds: CurriculumTopicId[] = [
+    "topic-distributive",
+    "topic-transposition",
+    "topic-like-terms",
+    "topic-olympiad",
+  ];
+
+  let targetTopic: CurriculumTopicId = validTopicIds.includes(
+    sourceProblem.topicId as CurriculumTopicId
+  )
+    ? (sourceProblem.topicId as CurriculumTopicId)
+    : "topic-distributive";
+
   if (
-    sourceProblem.topicId === "topic-olympiad" ||
-    sourceProblem.difficulty === 3
-  ) {
-    targetTopic = "topic-olympiad";
-  } else if (
-    targetErrorCategory === "SIGN_FLIP_OR_TRANSPOSITION" ||
-    sourceProblem.topicId === "topic-transposition"
+    !sourceProblem.topicId &&
+    targetErrorCategory === "SIGN_FLIP_OR_TRANSPOSITION"
   ) {
     targetTopic = "topic-transposition";
+  } else if (
+    !sourceProblem.topicId &&
+    targetErrorCategory === "COMBINE_LIKE_TERMS"
+  ) {
+    targetTopic = "topic-like-terms";
   }
 
   const avoidSet = new Set([sourceProblem.equation]);
@@ -221,9 +264,13 @@ export function generateIsomorphicProblem(
 
 /**
  * Parses any custom user-supplied linear equation (e.g. "4(x - 2) = 2x + 6"),
- * solves it symbolically via CortexJS/linear evaluator, and creates a structured MathProblem.
+ * solves it symbolically via CortexJS/linear evaluator, and creates a structured MathProblem
+ * assigned to the requested `preferredTopicId` (or auto-detected topic).
  */
-export function createCustomMathProblem(rawInput: string): MathProblem | null {
+export function createCustomMathProblem(
+  rawInput: string,
+  preferredTopicId?: CurriculumTopicId
+): MathProblem | null {
   const extracted = extractEquationFromText(rawInput);
   if (!extracted) return null;
 
@@ -236,24 +283,24 @@ export function createCustomMathProblem(rawInput: string): MathProblem | null {
   if (root === null || !Number.isFinite(root)) return null;
 
   const hasBrackets = /[()]/.test(extracted);
-  const targetSkill: ErrorCategory = hasBrackets
-    ? "DISTRIBUTIVE_PROPERTY"
-    : "SIGN_FLIP_OR_TRANSPOSITION";
-
-  const topicTitle = hasBrackets
-    ? "Custom Equation · Distributive Property"
-    : "Custom Equation · Linear Algebra";
+  const autoTopicId: CurriculumTopicId = hasBrackets
+    ? "topic-distributive"
+    : "topic-transposition";
+  const finalTopicId = preferredTopicId ?? autoTopicId;
+  const topicMeta =
+    STATIC_CURRICULUM_TOPICS.find((t) => t.id === finalTopicId) ??
+    STATIC_CURRICULUM_TOPICS[0];
 
   return {
     id: `prob-custom-${Date.now().toString(36)}`,
-    topicId: hasBrackets ? "topic-distributive" : "topic-transposition",
-    topicTitle,
+    topicId: topicMeta.id,
+    topicTitle: `${topicMeta.title} (Custom)`,
     gradeLevel: "Custom Exercise",
     equation: extracted,
     latex: extracted,
     variable: "x",
     expectedRoot: root,
-    targetSkill,
-    difficulty: hasBrackets ? 2 : 1,
+    targetSkill: topicMeta.targetSkill,
+    difficulty: topicMeta.difficulty,
   };
 }

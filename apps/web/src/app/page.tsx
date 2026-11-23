@@ -139,7 +139,10 @@ export default function HomePage() {
     }
   };
 
-  const handleSubmitCustomProblem = async (customEquation: string) => {
+  const handleSubmitCustomProblem = async (
+    customEquation: string,
+    topicFilter: CurriculumTopicId
+  ) => {
     if (!data) return;
     setIsSubmitting(true);
     try {
@@ -150,6 +153,7 @@ export default function HomePage() {
           profileId: data.profile.id,
           action: "custom_problem",
           customEquation,
+          topicFilter,
         }),
       });
       if (res.ok) {
@@ -255,7 +259,9 @@ export default function HomePage() {
               isSubmitting={isSubmitting}
               onSelectProblem={(pid) => void handleSelectProblem(pid)}
               onGenerateMoreProblems={handleGenerateMoreProblems}
-              onSubmitCustomProblem={(eq) => void handleSubmitCustomProblem(eq)}
+              onSubmitCustomProblem={(eq, tid) =>
+                void handleSubmitCustomProblem(eq, tid)
+              }
               onResetSession={() => void handleResetSession()}
             />
           </div>
