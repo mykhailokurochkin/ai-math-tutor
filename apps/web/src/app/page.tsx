@@ -107,6 +107,49 @@ export default function HomePage() {
     }
   };
 
+  const handleGenerateNewProblem = async () => {
+    if (!data) return;
+    setIsSubmitting(true);
+    try {
+      const res = await fetch("/api/problems", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          profileId: data.profile.id,
+          action: "generate_new",
+        }),
+      });
+      if (res.ok) {
+        const json = (await res.json()) as AppStatePayload;
+        setData(json);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSubmitCustomProblem = async (customEquation: string) => {
+    if (!data) return;
+    setIsSubmitting(true);
+    try {
+      const res = await fetch("/api/problems", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          profileId: data.profile.id,
+          action: "custom_problem",
+          customEquation,
+        }),
+      });
+      if (res.ok) {
+        const json = (await res.json()) as AppStatePayload;
+        setData(json);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleResetSession = async () => {
     if (!data) return;
     setIsSubmitting(true);
@@ -199,6 +242,8 @@ export default function HomePage() {
               notebookSteps={data.session.notebookSteps}
               isSubmitting={isSubmitting}
               onSelectProblem={(pid) => void handleSelectProblem(pid)}
+              onGenerateNewProblem={() => void handleGenerateNewProblem()}
+              onSubmitCustomProblem={(eq) => void handleSubmitCustomProblem(eq)}
               onResetSession={() => void handleResetSession()}
             />
           </div>

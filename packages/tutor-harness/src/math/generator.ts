@@ -1,32 +1,19 @@
 import type { ErrorCategory, MathProblem } from "../types";
+import { extractEquationFromText } from "./normalizer";
 import { evaluateToLinearPolynomial, solveLinearRoot } from "./verifier";
 
-interface IsomorphicTemplate {
-  a: number;
-  b: number;
-  c: number;
-  root: number;
-  sign: "+" | "-";
+function randomInt(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-const DISTRIBUTIVE_TEMPLATES: IsomorphicTemplate[] = [
-  { a: 4, b: 3, c: 3, root: 5, sign: "+" }, // 4(x + 3) = 3x + 17 -> x = 5
-  { a: 5, b: 2, c: 4, root: 6, sign: "+" }, // 5(x + 2) = 4x + 16 -> x = 6
-  { a: 2, b: 5, c: 1, root: 4, sign: "+" }, // 2(x + 5) = x + 14  -> x = 4
-  { a: 6, b: 2, c: 4, root: 3, sign: "+" }, // 6(x + 2) = 4x + 18 -> x = 3
-  { a: 3, b: 5, c: 2, root: 8, sign: "+" }, // 3(x + 5) = 2x + 23 -> x = 8
-];
-
-const TRANSPOSITION_TEMPLATES = [
-  { a: 5, b: -7, c: 3, root: 6 },
-  { a: 6, b: -9, c: 4, root: 7 },
-  { a: 4, b: 5, c: 2, root: 4 },
-];
-
+/**
+ * Dynamically generates a fresh, CAS-verified isomorphic problem targeting a specific skill/misconception.
+ * Uses randomized integer parameters and verifies via symbolic evaluation that the root is a clean integer.
+ */
 export function generateIsomorphicProblem(
   sourceProblem: MathProblem,
   targetErrorCategory: ErrorCategory,
-  seedIndex = 0
+  _seedIndex = 0
 ): MathProblem {
   const effectiveCategory =
     targetErrorCategory === "NONE" || targetErrorCategory === "INVALID_EXPRESSION"
@@ -38,27 +25,41 @@ export function generateIsomorphicProblem(
   let equation = "";
   let expectedRoot = 5;
 
-  if (effectiveCategory === "SIGN_FLIP_OR_TRANSPOSITION") {
-    const tpl =
-      TRANSPOSITION_TEMPLATES[seedIndex % TRANSPOSITION_TEMPLATES.length];
-    const d = (tpl.a - tpl.c) * tpl.root + tpl.b;
-    const lhsB = tpl.b >= 0 ? `+ ${tpl.b}` : `- ${Math.abs(tpl.b)}`;
-    const rhsD = d >= 0 ? `+ ${d}` : `- ${Math.abs(d)}`;
-    equation = `${tpl.a}x ${lhsB} = ${tpl.c}x ${rhsD}`;
-    expectedRoot = tpl.root;
-  } else {
-    const candidates = DISTRIBUTIVE_TEMPLATES.filter((t) => {
-      const d = t.a * (t.root + t.b) - t.c * t.root;
-      const eq = `${t.a}(x + ${t.b}) = ${t.c === 1 ? "" : t.c}x + ${d}`;
-      return eq !== sourceProblem.equation;
-    });
-    const tpl = candidates[seedIndex % candidates.length] ?? DISTRIBUTIVE_TEMPLATES[0];
-    const d = tpl.a * (tpl.root + tpl.b) - tpl.c * tpl.root;
-    const rhsX = tpl.c === 1 ? "x" : `${tpl.c}x`;
-    equation = `${tpl.a}(x + ${tpl.b}) = ${rhsX} + ${d}`;
-    expectedRoot = tpl.root;
+  // Attempt up to 15 randomized generations to ensure it differs from sourceProblem.equation
+  for (let attempt = 0; attempt < 15; attempt++) {
+    const root = randomInt(2, 11);
+
+    if (effectiveCategory === "SIGN_FLIP_OR_TRANSPOSITION") {
+      // Form: a*x + b = c*x + d
+      const c = randomInt(2, 5);
+      const a = c + randomInt(1, 4);
+      const b = randomInt(-12, 12) || 5;
+      const d = (a - c) * root + b;
+      const lhsB = b >= 0 ? `+ ${b}` : `- ${Math.abs(b)}`;
+      const rhsD = d >= 0 ? `+ ${d}` : `- ${Math.abs(d)}`;
+      equation = `${a}x ${lhsB} = ${c}x ${rhsD}`;
+      expectedRoot = root;
+    } else {
+      // Form: a(x + b) = cx + d (or a(x - b) = cx + d)
+      const a = randomInt(2, 6);
+      const b = randomInt(2, 7);
+      const c = randomInt(1, a - 1);
+      const useMinus = sourceProblem.equation.includes("-") && attempt % 2 === 1;
+      const signedB = useMinus ? -b : b;
+      const d = a * (root + signedB) - c * root;
+      if (d <= 0) continue;
+      const innerSign = signedB >= 0 ? `+ ${signedB}` : `- ${Math.abs(signedB)}`;
+      const rhsX = c === 1 ? "x" : `${c}x`;
+      equation = `${a}(x ${innerSign}) = ${rhsX} + ${d}`;
+      expectedRoot = root;
+    }
+
+    if (equation !== sourceProblem.equation) {
+      break;
+    }
   }
 
+  // CAS Verification: confirm generated equation solves to exact expected integer root
   const [lhsStr, rhsStr] = equation.split("=").map((s) => s.trim());
   const lhsPoly = evaluateToLinearPolynomial(lhsStr, sourceProblem.variable);
   const rhsPoly = evaluateToLinearPolynomial(rhsStr, sourceProblem.variable);
@@ -71,10 +72,14 @@ export function generateIsomorphicProblem(
     );
   }
 
+  const baseTitle = sourceProblem.topicTitle
+    .replace(" (Follow-Up Practice)", "")
+    .replace(" (Generated)", "");
+
   return {
-    id: `${sourceProblem.id}-reinforce-${Date.now().toString(36)}`,
+    id: `prob-gen-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 5)}`,
     topicId: sourceProblem.topicId,
-    topicTitle: `${sourceProblem.topicTitle.replace(" (Follow-Up Practice)", "")} (Follow-Up Practice)`,
+    topicTitle: `${baseTitle} (Follow-Up Practice)`,
     gradeLevel: sourceProblem.gradeLevel,
     equation,
     latex: equation,
@@ -84,5 +89,44 @@ export function generateIsomorphicProblem(
     difficulty: sourceProblem.difficulty,
     isReinforcement: true,
     parentProblemId: sourceProblem.id,
+  };
+}
+
+/**
+ * Parses any custom user-supplied linear equation (e.g. "4(x - 2) = 2x + 6"),
+ * solves it symbolically via CortexJS/linear evaluator, and creates a structured MathProblem.
+ */
+export function createCustomMathProblem(rawInput: string): MathProblem | null {
+  const extracted = extractEquationFromText(rawInput);
+  if (!extracted) return null;
+
+  const [lhsStr, rhsStr] = extracted.split("=").map((s) => s.trim());
+  const lhsPoly = evaluateToLinearPolynomial(lhsStr, "x");
+  const rhsPoly = evaluateToLinearPolynomial(rhsStr, "x");
+  if (!lhsPoly || !rhsPoly) return null;
+
+  const root = solveLinearRoot(lhsPoly, rhsPoly);
+  if (root === null || !Number.isFinite(root)) return null;
+
+  const hasBrackets = /[()]/.test(extracted);
+  const targetSkill: ErrorCategory = hasBrackets
+    ? "DISTRIBUTIVE_PROPERTY"
+    : "SIGN_FLIP_OR_TRANSPOSITION";
+
+  const topicTitle = hasBrackets
+    ? "Custom Equation · Distributive Property"
+    : "Custom Equation · Linear Algebra";
+
+  return {
+    id: `prob-custom-${Date.now().toString(36)}`,
+    topicId: hasBrackets ? "topic-distributive" : "topic-transposition",
+    topicTitle,
+    gradeLevel: "Custom Exercise",
+    equation: extracted,
+    latex: extracted,
+    variable: "x",
+    expectedRoot: root,
+    targetSkill,
+    difficulty: hasBrackets ? 2 : 1,
   };
 }

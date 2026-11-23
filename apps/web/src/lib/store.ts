@@ -132,19 +132,19 @@ function buildSeedDatabase(): DatabaseSchema {
   const now = new Date().toISOString();
   const reviewerProfile: UserProfile = {
     id: "reviewer",
-    name: "Tech Reviewer",
+    name: "Reviewer",
     role: "reviewer",
-    grade: "Evaluator & Harness Inspector Mode",
-    avatarBadge: "TR",
+    grade: "Evaluator Mode",
+    avatarBadge: "R",
     createdAt: now,
   };
 
   const studentProfile: UserProfile = {
-    id: "student-alex",
-    name: "Alex K.",
+    id: "student-default",
+    name: "Student",
     role: "student",
-    grade: "Grade 7 Algebra · Classical USSR Curriculum",
-    avatarBadge: "AK",
+    grade: "Algebra Curriculum",
+    avatarBadge: "S",
     createdAt: now,
   };
 
@@ -204,9 +204,9 @@ function resolveDbFilePath(): string {
     if (!fs.existsSync(localDataDir)) {
       fs.mkdirSync(localDataDir, { recursive: true });
     }
-    return path.join(localDataDir, "tutor-store-en.json");
+    return path.join(localDataDir, "tutor-store-v2.json");
   } catch {
-    return path.join("/tmp", "ai-math-tutor-store-en.json");
+    return path.join("/tmp", "ai-math-tutor-store-v2.json");
   }
 }
 

@@ -9,6 +9,8 @@ import {
   BookMarked,
   ChevronDown,
   Check,
+  Plus,
+  Shuffle,
 } from "lucide-react";
 import { MathFormula } from "./MathRenderer";
 import type { MathProblem, FSMState } from "@ai-math-tutor/tutor-harness";
@@ -21,6 +23,8 @@ export function WorkspacePane({
   notebookSteps,
   isSubmitting,
   onSelectProblem,
+  onGenerateNewProblem,
+  onSubmitCustomProblem,
   onResetSession,
 }: {
   currentProblem: MathProblem;
@@ -29,9 +33,12 @@ export function WorkspacePane({
   notebookSteps: NotebookStepRecord[];
   isSubmitting: boolean;
   onSelectProblem: (problemId: string) => void;
+  onGenerateNewProblem: () => void;
+  onSubmitCustomProblem: (customEquation: string) => void;
   onResetSession: () => void;
 }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [customEqInput, setCustomEqInput] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -54,6 +61,14 @@ export function WorkspacePane({
     };
   }, []);
 
+  const handleCustomSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!customEqInput.trim()) return;
+    onSubmitCustomProblem(customEqInput.trim());
+    setCustomEqInput("");
+    setDropdownOpen(false);
+  };
+
   return (
     <div className="bg-white rounded-3xl border border-black/[0.07] shadow-[0_2px_20px_rgba(0,0,0,0.03)] flex flex-col h-full min-h-0 overflow-hidden">
       {/* Top Workspace Header with Custom Apple-Style Popover Dropdown */}
@@ -65,7 +80,7 @@ export function WorkspacePane({
 
           <div className="relative min-w-0 flex-1">
             <span className="text-[11px] font-medium text-[#6E6E73] block">
-              Step-by-Step Solution Board
+              Current Exercise
             </span>
 
             <button
@@ -94,11 +109,27 @@ export function WorkspacePane({
 
             {/* Custom Apple Popover Menu */}
             {dropdownOpen && (
-              <div className="absolute left-0 mt-1.5 w-[340px] sm:w-[420px] rounded-2xl bg-white/95 backdrop-blur-xl shadow-[0_12px_36px_rgba(0,0,0,0.12)] border border-black/[0.08] p-1.5 z-40 space-y-1">
-                <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-[#86868B]">
-                  Select Curriculum Exercise
+              <div className="absolute left-0 mt-1.5 w-[340px] sm:w-[420px] rounded-2xl bg-white/95 backdrop-blur-xl shadow-[0_12px_36px_rgba(0,0,0,0.12)] border border-black/[0.08] p-2 z-40 space-y-2">
+                {/* Dynamic Generation Actions */}
+                <div className="flex items-center justify-between gap-2 px-1 pt-0.5">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-[#86868B]">
+                    Exercises
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDropdownOpen(false);
+                      onGenerateNewProblem();
+                    }}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-[#0071E3]/10 hover:bg-[#0071E3]/15 text-[#0071E3] transition-colors cursor-pointer"
+                  >
+                    <Shuffle className="w-3 h-3" />
+                    Generate New Problem
+                  </button>
                 </div>
-                <div className="max-h-72 overflow-y-auto space-y-1">
+
+                {/* Preset & Generated Problems List */}
+                <div className="max-h-60 overflow-y-auto space-y-1">
                   {availableProblems.map((prob) => {
                     const isSelected = prob.id === currentProblem.id;
                     return (
@@ -111,7 +142,7 @@ export function WorkspacePane({
                             onSelectProblem(prob.id);
                           }
                         }}
-                        className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center justify-between gap-3 transition-colors cursor-pointer ${
+                        className={`w-full text-left px-3 py-2 rounded-xl flex items-center justify-between gap-3 transition-colors cursor-pointer ${
                           isSelected
                             ? "bg-[#0071E3]/[0.08] text-[#1D1D1F]"
                             : "hover:bg-[#F5F5F7] text-[#1D1D1F]"
@@ -124,7 +155,7 @@ export function WorkspacePane({
                             </span>
                             {prob.isReinforcement ? (
                               <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#0071E3]/10 text-[#0071E3]">
-                                Personalized Follow-Up
+                                Follow-Up
                               </span>
                             ) : (
                               <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-black/[0.05] text-[#6E6E73]">
@@ -146,6 +177,28 @@ export function WorkspacePane({
                     );
                   })}
                 </div>
+
+                {/* Custom Equation Form */}
+                <form
+                  onSubmit={handleCustomSubmit}
+                  className="pt-2 border-t border-black/[0.06] flex items-center gap-1.5"
+                >
+                  <input
+                    type="text"
+                    value={customEqInput}
+                    onChange={(e) => setCustomEqInput(e.target.value)}
+                    placeholder="Or enter any equation: e.g. 2(x + 5) = x + 13"
+                    className="flex-1 px-3 py-1.5 rounded-xl bg-[#F5F5F7] border border-black/[0.06] text-xs font-mono text-[#1D1D1F] placeholder:text-[#86868B] focus:outline-none focus:border-[#0071E3]"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!customEqInput.trim()}
+                    className="px-2.5 py-1.5 rounded-xl bg-[#1D1D1F] disabled:opacity-40 text-white text-xs font-medium inline-flex items-center gap-1 cursor-pointer shrink-0"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Solve
+                  </button>
+                </form>
               </div>
             )}
           </div>
@@ -165,17 +218,13 @@ export function WorkspacePane({
       {/* Hero Active Problem Statement Card */}
       <div className="px-6 py-4 border-b border-black/[0.06] bg-gradient-to-b from-[#FBFBFD] to-white shrink-0">
         <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-          <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-black/[0.05] text-[#6E6E73]">
-            {currentProblem.gradeLevel}
+          <span className="text-[11px] font-medium text-[#6E6E73]">
+            {currentProblem.topicTitle}
           </span>
-          {currentProblem.isReinforcement ? (
+          {currentProblem.isReinforcement && (
             <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-[#0071E3]/10 text-[#0071E3]">
               <Sparkles className="w-3 h-3" />
-              Personalized Follow-Up Problem
-            </span>
-          ) : (
-            <span className="text-[11px] font-medium text-[#6E6E73]">
-              {currentProblem.topicTitle}
+              Follow-Up Practice
             </span>
           )}
         </div>
@@ -190,11 +239,11 @@ export function WorkspacePane({
       {/* Notebook Steps Grid Surface (Strictly Scrollable Internally) */}
       <div className="flex-1 min-h-0 p-6 overflow-y-auto space-y-3 bg-[radial-gradient(#00000010_1px,transparent_1px)] [background-size:18px_18px]">
         <div className="flex items-center justify-between text-xs font-medium text-[#6E6E73] mb-1">
-          <span>Recorded Algebraic Steps</span>
+          <span>Solution Steps</span>
           <div className="flex items-center gap-3">
             {fsmState.phase === "MASTERED" && (
               <span className="text-xs font-semibold text-[#1D9E5E]">
-                ✓ Concept Mastered
+                ✓ Solved & Verified
               </span>
             )}
             <span>{notebookSteps.length} steps</span>
@@ -204,10 +253,10 @@ export function WorkspacePane({
         {notebookSteps.length === 0 ? (
           <div className="p-8 rounded-2xl border border-dashed border-black/[0.12] bg-white/80 text-center space-y-2">
             <p className="text-sm font-medium text-[#1D1D1F]">
-              No algebraic steps recorded yet
+              No steps recorded yet
             </p>
             <p className="text-xs text-[#6E6E73] max-w-sm mx-auto leading-relaxed">
-              Send your equation steps in the <strong>AI Math Tutor</strong> chat on the right — every mathematical step you write is automatically parsed, verified, and displayed here.
+              Send your equation steps in the chat on the right — every mathematical step you write is automatically verified and recorded here.
             </p>
           </div>
         ) : (
@@ -254,7 +303,7 @@ export function WorkspacePane({
                       {isError && (
                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#D92D20]/10 text-[#D92D20]">
                           <AlertCircle className="w-3.5 h-3.5" />
-                          Reasoning Error
+                          Error Detected
                         </span>
                       )}
                       {step.status === "CORRECT_INTERMEDIATE" && (

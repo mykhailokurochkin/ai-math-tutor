@@ -25,26 +25,16 @@ export function HeaderBar({
     activeProfile.role === "student" ? activeProfile : studentProfiles[0];
 
   return (
-    <header className="sticky top-0 z-30 backdrop-blur-xl bg-white/80 border-b border-black/[0.06]">
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
-        {/* Left: Brand Identity */}
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-2xl bg-[#1D1D1F] text-white flex items-center justify-center shadow-sm">
-            <Sigma className="w-5 h-5" />
+    <header className="sticky top-0 z-30 backdrop-blur-xl bg-white/80 border-b border-black/[0.06] shrink-0">
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
+        {/* Left: Minimal Brand Title */}
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-[#1D1D1F] text-white flex items-center justify-center shadow-sm">
+            <Sigma className="w-4 h-4" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-sm sm:text-base font-semibold text-[#1D1D1F] tracking-tight">
-                AI Math Tutor
-              </h1>
-              <span className="hidden md:inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-black/[0.05] text-[#6E6E73]">
-                USSR Curriculum
-              </span>
-            </div>
-            <p className="text-[11px] text-[#6E6E73] hidden sm:block">
-              Neuro-Symbolic Algebra Tutor · Adaptive Socratic Guidance
-            </p>
-          </div>
+          <h1 className="text-sm sm:text-base font-semibold text-[#1D1D1F] tracking-tight">
+            AI Math Tutor
+          </h1>
         </div>
 
         {/* Center: Clean Apple Segmented Role Switcher */}
@@ -53,7 +43,7 @@ export function HeaderBar({
             <button
               type="button"
               onClick={() => onSelectProfile(reviewerProfile.id)}
-              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${
+              className={`inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-medium transition-all cursor-pointer ${
                 activeProfile.role === "reviewer"
                   ? "bg-white text-[#1D1D1F] shadow-sm font-semibold"
                   : "text-[#6E6E73] hover:text-[#1D1D1F]"
@@ -68,14 +58,14 @@ export function HeaderBar({
             <button
               type="button"
               onClick={() => onSelectProfile(activeStudent.id)}
-              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${
+              className={`inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-medium transition-all cursor-pointer ${
                 activeProfile.role === "student"
                   ? "bg-white text-[#1D1D1F] shadow-sm font-semibold"
                   : "text-[#6E6E73] hover:text-[#1D1D1F]"
               }`}
             >
               <User className="w-3.5 h-3.5 text-[#1D9E5E]" />
-              <span>Student View ({activeStudent.name})</span>
+              <span>Student View</span>
             </button>
           )}
         </div>
