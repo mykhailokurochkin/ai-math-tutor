@@ -13,13 +13,49 @@ import {
   Layers,
 } from "lucide-react";
 import { MathFormula } from "./MathRenderer";
-import {
-  STATIC_CURRICULUM_TOPICS,
-  type MathProblem,
-  type FSMState,
-  type CurriculumTopicId,
+import type {
+  MathProblem,
+  FSMState,
+  CurriculumTopicId,
 } from "@ai-math-tutor/tutor-harness";
 import type { NotebookStepRecord } from "@/lib/store";
+
+const STATIC_CURRICULUM_TOPICS: Array<{
+  id: CurriculumTopicId;
+  title: string;
+  shortTitle: string;
+  formulaLatex: string;
+  difficulty: 1 | 2 | 3;
+}> = [
+  {
+    id: "topic-distributive",
+    title: "Distributive Property",
+    shortTitle: "Distributive Property",
+    formulaLatex: "a(b + c) = ab + ac",
+    difficulty: 1,
+  },
+  {
+    id: "topic-transposition",
+    title: "Transposition & Signs",
+    shortTitle: "Transposition & Signs",
+    formulaLatex: "A + B = C \\implies A = C - B",
+    difficulty: 1,
+  },
+  {
+    id: "topic-like-terms",
+    title: "Combining Like Terms",
+    shortTitle: "Combining Like Terms",
+    formulaLatex: "ax + bx = (a + b)x",
+    difficulty: 2,
+  },
+  {
+    id: "topic-olympiad",
+    title: "Multi-Bracket Equations",
+    shortTitle: "Multi-Bracket Equations",
+    formulaLatex: "a(mx + b) - k(x - c) = dx + e",
+    difficulty: 3,
+  },
+];
 
 export function WorkspacePane({
   currentProblem,
