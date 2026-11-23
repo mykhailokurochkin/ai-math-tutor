@@ -344,7 +344,7 @@ export function ProgressModal({
                                       key={s.id}
                                       className={`px-3 py-2 rounded-xl border text-xs flex items-center justify-between gap-2 ${
                                         s.status === "ERROR_DETECTED"
-                                          ? "bg-[#FEF3F2] border-[#D92D20]/20 text-[#B42318]"
+                                          ? "bg-[#FFFBF7] border-[#F3D8B6] text-[#92400E]"
                                           : "bg-[#F5F5F7] border-black/[0.05] text-[#1D1D1F]"
                                       }`}
                                     >
@@ -474,7 +474,7 @@ export function ProgressModal({
                           </span>
                         )}
                         {m.status === "OPEN" && (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[#FEF3F2] text-[#D92D20] border border-[#D92D20]/20">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[#FFF8EB] text-[#B45309] border border-[#F3D8B6]">
                             Needs Correction
                           </span>
                         )}

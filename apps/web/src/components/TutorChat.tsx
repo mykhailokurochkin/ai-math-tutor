@@ -113,7 +113,7 @@ export function TutorChat({
                   </span>
                 ) : null}
                 {isTutor && msg.errorTag ? (
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#FEF3F2] text-[#D92D20]">
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#FFF8EB] text-[#B45309] border border-[#F3D8B6]">
                     {msg.errorTag}
                   </span>
                 ) : null}

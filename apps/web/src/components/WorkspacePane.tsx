@@ -544,7 +544,7 @@ export function WorkspacePane({
                   key={step.id}
                   className={`p-4 rounded-2xl border transition-all ${
                     isError
-                      ? "bg-[#FEF3F2]/90 border-[#D92D20]/25"
+                      ? "bg-[#FFFBF7] border-[#F3D8B6]"
                       : isFinal
                         ? "bg-[#ECFDF3]/90 border-[#1D9E5E]/30"
                         : isWorked
@@ -557,7 +557,7 @@ export function WorkspacePane({
                       <span
                         className={`w-6 h-6 rounded-full text-xs font-semibold flex items-center justify-center shrink-0 ${
                           isError
-                            ? "bg-[#D92D20] text-white"
+                            ? "bg-[#FDEBD0] text-[#B45309]"
                             : isFinal
                               ? "bg-[#1D9E5E] text-white"
                               : isWorked
@@ -574,9 +574,9 @@ export function WorkspacePane({
 
                     <div className="shrink-0">
                       {isError && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#D92D20]/10 text-[#D92D20]">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[#FEF3C7]/80 text-[#B45309]">
                           <AlertCircle className="w-3.5 h-3.5" />
-                          Error Detected
+                          Needs Adjustment
                         </span>
                       )}
                       {step.status === "CORRECT_INTERMEDIATE" && (
@@ -600,7 +600,7 @@ export function WorkspacePane({
                   </div>
 
                   {isError && (
-                    <p className="mt-2 text-xs text-[#B42318] pl-9 leading-relaxed">
+                    <p className="mt-2 text-xs text-[#92400E] pl-9 leading-relaxed">
                       {step.diagnosticNote}
                     </p>
                   )}
