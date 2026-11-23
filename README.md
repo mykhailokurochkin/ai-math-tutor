@@ -1,97 +1,23 @@
-# AI Math Tutor — Neuro-Symbolic Pedagogical Prototype
+# AI Math Tutor
 
-A functional prototype of an interactive AI mathematics tutor inspired by the **classical USSR mathematics education system** (Kiselev / Makarychev / Skanavi methodology) and Google LearnLM active-learning principles.
-
-Built as a **TypeScript Monorepo** separating the cross-platform AI pedagogical engine (`packages/tutor-harness`) from the web application (`apps/web`).
+An interactive AI mathematics tutor inspired by the classical USSR algebra curriculum. Built with **Next.js**, **LangGraph (`@langchain/langgraph`)**, **CortexJS Compute Engine**, and **Vercel AI SDK**.
 
 ---
 
-## 1. Technical Approach: Why a Neuro-Symbolic Pedagogical Harness?
-
-Most LLM-based math tutors rely on a single system prompt (*"You are a math tutor, don't give away the answer"*). In practice, pure prompt-wrappers fail in three critical ways:
-1. **Mathematical Hallucinations:** LLMs frequently miscalculate intermediate algebraic steps or misidentify where a student went wrong.
-2. **The Compliance Trap (Answer Leakage):** When an impatient student asks *"Just tell me the answer"*, instruction-tuned models routinely leak the solution.
-3. **Lack of Structured Pedagogical Control:** Pure chat models do not deterministically enforce follow-up verification problems after a misconception is fixed.
-
-### Our Solution: `@ai-math-tutor/tutor-harness` (Powered by LangGraph `StateGraph`)
-
-Instead of a thin API wrapper, this project implements a **Neuro-Symbolic Pedagogical Harness** orchestrated via **`@langchain/langgraph` (`StateGraph`)** that combines deterministic Computer Algebra System (CAS) verification with an explicit Pedagogical Finite State Machine (FSM):
-
-```text
-START
-  │
-  ▼
-[normalize_input]              (normalizer.ts: extracts equations & normalizes ASCII -> LaTeX)
-  │
-  ▼
-[symbolic_cas_verify]          (verifier.ts · @cortex-js/compute-engine: polynomial diff & error taxonomy)
-  │
-  ▼
-[pedagogical_fsm]              (stateMachine.ts: SOLVING -> SOCRATIC_GUIDE L1..L3 -> WORKED_EXAMPLE -> REINFORCEMENT)
-  │
-  ├── (Conditional Edge: shouldGenerateReinforcement === true) ──► [generate_followup_problem] (generator.ts)
-  │                                                                         │
-  ◄─────────────────────────────────────────────────────────────────────────┘
-  ▼
-[prepare_pedagogical_context]  (USSR Curriculum lookup + Hidden Symbolic Scratchpad)
-  │
-  ▼
-[llm_socratic_tutor]           (provider.ts: Gemini / OpenAI / Anthropic via Vercel AI SDK)
-  │
-  ▼
-[socragate_guardrail]          (leakageGate.ts: output-admission control blocking premature answer leaks)
-  │
-  ▼
-END
-```
-
----
-
-## 2. How Each Requirement is Satisfied
-
-| Requirement | Implementation |
-| :--- | :--- |
-| **1. AI Tutor Interface** | Apple-clean split-screen workspace (`apps/web`): **Step-by-Step Math Workspace** with publication-grade **KaTeX** rendering on the left, and **Adaptive Socratic Chat** on the right. |
-| **2. Error Detection** | `verifyStudentStep()` in [`verifier.ts`](./packages/tutor-harness/src/math/verifier.ts) compares the student's step against the reference equation symbolically. On `3(x + 4) = 2x + 19` → `3x + 4 = 2x + 19`, it identifies `DISTRIBUTIVE_PROPERTY` (`LHS expanded to 3x + 4 instead of 3x + 12; constant term 4 was not multiplied by 3`). |
-| **3. Adaptive Teaching** | `computeFSMTransition()` in [`stateMachine.ts`](./packages/tutor-harness/src/fsm/stateMachine.ts) escalates Socratic hints across 3 levels (`L1: Conceptual Rule` → `L2: Focused Term Check` → `L3: Atomic Sub-Step`) while [`leakageGate.ts`](./packages/tutor-harness/src/guardrails/leakageGate.ts) blocks premature answer leaks. After 3 failed attempts (or via the unlocked *"Show Worked Step Explanation"* button), it provides a full worked explanation (`WORKED_EXAMPLE`). |
-| **4. Personalized Practice** | `generateIsomorphicProblem()` in [`generator.ts`](./packages/tutor-harness/src/math/generator.ts) automatically triggers when a student solves an equation after making an error, generating a CAS-verified similar equation (e.g., `4(x + 3) = 3x + 17`) to confirm independent mastery. |
-| **5. Progress Tracking** | Persistent store ([`store.ts`](./apps/web/src/lib/store.ts)) and **Progress Dashboard Modal** ([`ProgressModal.tsx`](./apps/web/src/components/ProgressModal.tsx)) tracking completed exercises, topic mastery percentages, and a detailed **Diagnosed Reasoning Mistakes Log** (`Needs Correction` → `Corrected` → `Verified by Follow-Up`). |
-
----
-
-## 3. Built-In Reviewer Experience (`Reviewer View` vs `Student View`)
-
-The top navigation bar features a 1-click **Role Switcher**:
-- **Reviewer View (Default):**
-  - Displays the **Test Scenario Controls** bar at the top: click **`1. Run Test Scenario: 3(x + 4) = 2x + 19 → 3x + 4 = 2x + 19`** to immediately load the test problem and submit the erroneous step in one click, followed by quick-action buttons (`2. Correct Error: 3x + 12 = 2x + 19` and `3. Solve: x = 7 (→ Generate Follow-Up)`).
-  - Displays the live **AI Harness Inspector (Neuro-Symbolic Telemetry)** console at the bottom, showing real-time CAS root comparison, LHS/RHS polynomial diff, FSM state transitions, and Leakage Guardrail status.
-- **Student View (`Alex K.`):**
-  - Hides all developer/reviewer toolbars to showcase the distraction-free student learning experience.
-
----
-
-## 4. Getting Started Locally
-
-### Prerequisites
-- Node.js `>= 20.0.0`
-- `pnpm`
-
-### Installation & Running
+## Quick Start
 
 ```bash
-# 1. Install dependencies across the monorepo
+# 1. Install dependencies
 pnpm install
 
-# 2. (Optional) Configure your LLM API key
-cp .env.example .env
-# Set GOOGLE_GENERATIVE_AI_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY in .env
-# Note: The prototype also includes a deterministic Neuro-Symbolic Guided Engine
-# fallback so it runs out-of-the-box even before an API key is added.
+# 2. Configure API key (optional — includes a built-in symbolic fallback engine)
+cp .env.example apps/web/.env.local
+# Add GOOGLE_GENERATIVE_AI_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY
 
-# 3. Run the unit test suite for the Neuro-Symbolic Harness
+# 3. Run unit tests
 pnpm test
 
-# 4. Start the Next.js development server
+# 4. Start development server
 pnpm dev
 ```
 
@@ -99,6 +25,41 @@ Open **http://localhost:3000** in your browser.
 
 ---
 
-## 5. Scaling to Web, iOS, and Android
+## Technical Approach
 
-See [**`docs/SCALING_ARCHITECTURE.md`**](./docs/SCALING_ARCHITECTURE.md) for the complete architectural blueprint detailing how this monorepo scales to **Web, iOS, and Android** using **Expo (React Native)**, **`@shopify/react-native-skia`** for the handwriting whiteboard, Vision OCR, and Voice conversation pipelines within a 3-week solo-engineer timeline.
+Standard LLM wrappers often hallucinate algebraic steps or give away answers prematurely when a student asks for the solution. To solve this, the project separates deterministic math verification from conversational tutoring inside a shared monorepo package (`packages/tutor-harness`):
+
+1. **LangGraph Orchestration (`StateGraph`):**
+   Every turn flows through a structured graph:
+   `normalize_input` → `symbolic_cas_verify` → `pedagogical_fsm` → *(conditional: `generate_followup_problem`)* → `prepare_pedagogical_context` → `llm_socratic_tutor` → `socragate_guardrail`.
+2. **Symbolic Error Detection (`@cortex-js/compute-engine`):**
+   Before calling the LLM, the verifier expands and compares the left and right sides of the student's equation against the target equation. It deterministically classifies mistakes (`DISTRIBUTIVE_PROPERTY`, `SIGN_FLIP_OR_TRANSPOSITION`, `COMBINE_LIKE_TERMS`, `DIVISION_OR_ISOLATION`).
+3. **Adaptive Socratic Teaching & Answer-Leakage Guardrail:**
+   Instead of revealing the final root, the tutor guides the student through 3 progressive hint levels (`L1: Rule Prompt` → `L2: Term Focus` → `L3: Atomic Step`). An output guardrail blocks premature answer leaks. If a student is still stuck after attempting, a *"Show Worked Step Explanation"* option unlocks.
+4. **Dynamic Practice Generation:**
+   When a student corrects a mistake and solves the equation, the generator creates a similar problem targeting the same mathematical property and verifies via CAS that it has a clean integer root.
+5. **Progress & Solution History:**
+   Tracks mastery across topics, logs diagnosed reasoning mistakes, and saves the step-by-step solution and hint history for every attempted exercise.
+
+---
+
+## Testing the Assignment Scenario
+
+**Scenario:** Solving `3(x + 4) = 2x + 19` where the student incorrectly writes `3x + 4 = 2x + 19`.
+
+- **In Student View (Default):**
+  Type `3x + 4 = 2x + 19` in the chat. The tutor detects that `3` was not multiplied by `4`, highlights the reasoning error on the solution board, and asks a guiding question without revealing `x = 7`.
+- **In Reviewer View (1-Click Demo):**
+  Switch to **Reviewer View** in the top bar and click **`1. Run Test Scenario: 3(x + 4) = 2x + 19 → 3x + 4 = 2x + 19`**, followed by steps `2` and `3` to test error correction and follow-up problem generation in seconds.
+
+---
+
+## Scaling to Web, iOS, and Android
+
+The repository is structured as a **pnpm monorepo** to allow a single engineer to deliver and maintain **Web, iOS, and Android** from one shared TypeScript core:
+
+- **`packages/tutor-harness` (Shared Core — ~80% of logic):** Pure TypeScript with zero DOM dependencies. Runs identically in Next.js and React Native (Expo).
+- **`apps/web` (Next.js 15):** Web interface with KaTeX rendering and API endpoints.
+- **`apps/mobile` (Expo / React Native — Mobile Target):** Reuses `packages/tutor-harness`, adding `@shopify/react-native-skia` for native stylus/touch handwriting whiteboards (paired with Vision OCR) and WebRTC / Speech APIs for voice tutoring.
+
+For the full 3-week cross-platform implementation plan, see [**`docs/SCALING_ARCHITECTURE.md`**](./docs/SCALING_ARCHITECTURE.md).
