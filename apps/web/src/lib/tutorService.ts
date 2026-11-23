@@ -4,8 +4,8 @@ import {
   runTutorHarnessTurn,
 } from "@ai-math-tutor/tutor-harness";
 import {
-  createInitialChatForProblem,
   getOrInitProfileState,
+  recomputeProfileSkillMastery,
   saveDatabase,
   syncActiveSessionToWorkspaceHistory,
   type ChatMessageRecord,
@@ -82,7 +82,6 @@ export async function processStudentStepInStore(params: {
   }
 
   const profileMistakes = db.mistakes[profile.id] ?? [];
-  const profileSkills = db.skillMastery[profile.id] ?? [];
 
   if (turn.stepStatus === "ERROR_DETECTED") {
     const errCat = turn.verification.errorCategory;
@@ -101,12 +100,6 @@ export async function processStudentStepInStore(params: {
       timestamp: now,
     };
     profileMistakes.unshift(newMistake);
-
-    const skill = profileSkills.find((s) => s.errorCategory === errCat);
-    if (skill) {
-      skill.mistakesCount += 1;
-      skill.masteryPercent = Math.max(25, skill.masteryPercent - 6);
-    }
   } else if (
     turn.stepStatus === "CORRECT_INTERMEDIATE" ||
     turn.stepStatus === "CORRECT_FINAL"
@@ -123,9 +116,6 @@ export async function processStudentStepInStore(params: {
       session.completedProblemIds.push(activeProblem.id);
     }
 
-    const skill = profileSkills.find(
-      (s) => s.errorCategory === activeProblem.targetSkill
-    );
     if (activeProblem.isReinforcement) {
       for (const m of profileMistakes) {
         if (
@@ -136,14 +126,6 @@ export async function processStudentStepInStore(params: {
           m.status = "VERIFIED_BY_FOLLOWUP";
         }
       }
-      if (skill) {
-        skill.solvedCount += 1;
-        skill.verifiedFollowUpsCount += 1;
-        skill.masteryPercent = Math.min(100, skill.masteryPercent + 16);
-      }
-    } else if (skill) {
-      skill.solvedCount += 1;
-      skill.masteryPercent = Math.min(100, skill.masteryPercent + 10);
     }
   }
 
@@ -171,7 +153,6 @@ export async function processStudentStepInStore(params: {
       session.completedProblemIds.push(activeProblem.id);
     }
 
-    // Save the finished problem's full history before switching to the follow-up problem!
     session.fsmState = turn.nextFsmState;
     syncActiveSessionToWorkspaceHistory(db, profile.id);
 
@@ -183,7 +164,6 @@ export async function processStudentStepInStore(params: {
     session.currentProblem = turn.followUpProblem;
     session.fsmState = nextFsm;
     session.notebookSteps = [];
-    // Keep the tutor's message announcing the follow-up problem at the start of the follow-up chat
     session.chatMessages = [
       {
         id: `msg-followup-${Date.now()}`,
@@ -200,6 +180,7 @@ export async function processStudentStepInStore(params: {
     syncActiveSessionToWorkspaceHistory(db, profile.id);
   }
 
+  recomputeProfileSkillMastery(db, profile.id);
   saveDatabase(db);
 
   return {

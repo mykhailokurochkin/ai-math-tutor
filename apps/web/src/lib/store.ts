@@ -5,7 +5,6 @@ import {
   DEFAULT_PROBLEMS,
   createInitialFSMState,
   getTestScenarioProblem,
-  lookupCurriculumRule,
   type ErrorCategory,
   type FSMState,
   type HarnessTrace,
@@ -128,26 +127,16 @@ export interface DatabaseSchema {
   customProblems: Record<string, MathProblem[]>;
 }
 
-function createDefaultSkillMastery(
-  isPreseededStudent = false
-): SkillMasteryRecord[] {
-  return CURRICULUM_RULES.map((rule, idx) => ({
+export function createZeroSkillMastery(): SkillMasteryRecord[] {
+  return CURRICULUM_RULES.map((rule) => ({
     topicId: rule.id,
     topicTitle: rule.titleEn,
     errorCategory: rule.errorCategory,
     formulaLatex: rule.formulaLatex,
-    masteryPercent: isPreseededStudent
-      ? [78, 65, 85, 90][idx % 4]
-      : [60, 75, 80, 85][idx % 4],
-    solvedCount: isPreseededStudent
-      ? [4, 3, 5, 6][idx % 4]
-      : [1, 2, 2, 3][idx % 4],
-    mistakesCount: isPreseededStudent
-      ? [2, 2, 1, 0][idx % 4]
-      : [0, 0, 0, 0][idx % 4],
-    verifiedFollowUpsCount: isPreseededStudent
-      ? [1, 1, 1, 0][idx % 4]
-      : [0, 0, 0, 0][idx % 4],
+    masteryPercent: 0,
+    solvedCount: 0,
+    mistakesCount: 0,
+    verifiedFollowUpsCount: 0,
   }));
 }
 
@@ -213,7 +202,9 @@ export function syncActiveSessionToWorkspaceHistory(
   }
 
   const hintsGivenCount = session.chatMessages.filter(
-    (m) => m.role === "tutor" && ((m.hintLevel && m.hintLevel > 0) || m.phaseBadge === "WORKED_EXAMPLE")
+    (m) =>
+      m.role === "tutor" &&
+      ((m.hintLevel && m.hintLevel > 0) || m.phaseBadge === "WORKED_EXAMPLE")
   ).length;
 
   const mistakesCount = session.notebookSteps.filter(
@@ -231,6 +222,62 @@ export function syncActiveSessionToWorkspaceHistory(
     mistakesCount,
     updatedAt: new Date().toISOString(),
   };
+}
+
+/**
+ * Deterministically recomputes SkillMastery records from the actual workspace history and mistakes log,
+ * guaranteeing that progress is 0% when nothing has been solved and updates accurately on Reset.
+ */
+export function recomputeProfileSkillMastery(
+  db: DatabaseSchema,
+  profileId: string
+): SkillMasteryRecord[] {
+  const workspaces = Object.values(db.problemWorkspaces[profileId] ?? {});
+  const mistakes = db.mistakes[profileId] ?? [];
+
+  const records = CURRICULUM_RULES.map((rule) => {
+    const matchingSolved = workspaces.filter(
+      (ws) =>
+        ws.status === "SOLVED" &&
+        ws.problem.targetSkill === rule.errorCategory
+    );
+    const solvedCount = matchingSolved.length;
+    const verifiedFollowUpsCount = matchingSolved.filter(
+      (ws) => ws.problem.isReinforcement
+    ).length;
+    const mistakesCount = mistakes.filter(
+      (m) => m.errorCategory === rule.errorCategory
+    ).length;
+
+    let masteryPercent = 0;
+    if (solvedCount > 0) {
+      // Base 50% for first solved exercise in this skill, +25% for each additional or follow-up verification, minus penalty for open mistakes
+      const openMistakes = mistakes.filter(
+        (m) => m.errorCategory === rule.errorCategory && m.status === "OPEN"
+      ).length;
+      masteryPercent = Math.min(
+        100,
+        Math.max(
+          15,
+          50 + (solvedCount - 1) * 25 + verifiedFollowUpsCount * 15 - openMistakes * 15
+        )
+      );
+    }
+
+    return {
+      topicId: rule.id,
+      topicTitle: rule.titleEn,
+      errorCategory: rule.errorCategory,
+      formulaLatex: rule.formulaLatex,
+      masteryPercent,
+      solvedCount,
+      mistakesCount,
+      verifiedFollowUpsCount,
+    };
+  });
+
+  db.skillMastery[profileId] = records;
+  return records;
 }
 
 function buildSeedDatabase(): DatabaseSchema {
@@ -262,14 +309,6 @@ function buildSeedDatabase(): DatabaseSchema {
     studentProfile.id,
     getTestScenarioProblem()
   );
-  studentSession.completedProblemIds = ["prob-transposition-1"];
-
-  const ruleDist = lookupCurriculumRule("DISTRIBUTIVE_PROPERTY");
-
-  // Pre-seed one completed exercise in student history so the History tab is rich on first view
-  const seedSolvedProb = DEFAULT_PROBLEMS[2]; // 7x - 11 = 4x + 13
-  const seedSolvedFsm = createInitialFSMState(seedSolvedProb);
-  seedSolvedFsm.phase = "MASTERED";
 
   const db: DatabaseSchema = {
     profiles: [reviewerProfile, studentProfile],
@@ -279,107 +318,15 @@ function buildSeedDatabase(): DatabaseSchema {
     },
     problemWorkspaces: {
       [reviewerProfile.id]: {},
-      [studentProfile.id]: {
-        [seedSolvedProb.id]: {
-          problem: seedSolvedProb,
-          fsmState: seedSolvedFsm,
-          notebookSteps: [
-            {
-              id: "seed-step-1",
-              stepNumber: 1,
-              problemId: seedSolvedProb.id,
-              problemEquation: seedSolvedProb.equation,
-              rawInput: "3x = 24",
-              expressionLatex: "3x = 24",
-              status: "CORRECT_INTERMEDIATE",
-              errorCategory: "NONE",
-              diagnosticNote:
-                'Step "3x = 24" is algebraically equivalent to the target equation (root x = 8 preserved).',
-              timestamp: now,
-            },
-            {
-              id: "seed-step-2",
-              stepNumber: 2,
-              problemId: seedSolvedProb.id,
-              problemEquation: seedSolvedProb.equation,
-              rawInput: "x = 8",
-              expressionLatex: "x = 8",
-              status: "CORRECT_FINAL",
-              errorCategory: "NONE",
-              diagnosticNote: "Student correctly found the final root: x = 8.",
-              timestamp: now,
-            },
-          ],
-          chatMessages: [
-            {
-              id: "seed-msg-1",
-              role: "tutor",
-              content: `Let's solve the linear equation **$${seedSolvedProb.equation}$**.`,
-              timestamp: now,
-              phaseBadge: "SOLVING",
-              hintLevel: 0,
-            },
-            {
-              id: "seed-msg-2",
-              role: "student",
-              content: "3x = 24",
-              timestamp: now,
-            },
-            {
-              id: "seed-msg-3",
-              role: "tutor",
-              content:
-                "Good step! **$3x = 24$** is algebraically equivalent. What is your next step to isolate $x$?",
-              timestamp: now,
-              phaseBadge: "SOLVING",
-              hintLevel: 0,
-            },
-            {
-              id: "seed-msg-4",
-              role: "student",
-              content: "x = 8",
-              timestamp: now,
-            },
-            {
-              id: "seed-msg-5",
-              role: "tutor",
-              content:
-                "Spot on! **$x = 8$** — a flawless solution on the first attempt! 🏆",
-              timestamp: now,
-              phaseBadge: "MASTERED",
-              hintLevel: 0,
-            },
-          ],
-          traces: [],
-          status: "SOLVED",
-          hintsGivenCount: 0,
-          mistakesCount: 0,
-          updatedAt: now,
-        },
-      },
+      [studentProfile.id]: {},
     },
     mistakes: {
       [reviewerProfile.id]: [],
-      [studentProfile.id]: [
-        {
-          id: "mistake-seed-1",
-          profileId: studentProfile.id,
-          problemId: "prob-brackets-2",
-          problemEquation: "5(x - 2) = 3x + 4",
-          studentWrongStep: "5x - 2 = 3x + 4",
-          errorCategory: "DISTRIBUTIVE_PROPERTY",
-          ruleTitle:
-            ruleDist?.titleEn ?? "Distributive Property of Multiplication",
-          diagnosticSummary:
-            "Multiplier 5 was not applied to the second term (-2) when expanding parentheses.",
-          status: "VERIFIED_BY_FOLLOWUP",
-          timestamp: now,
-        },
-      ],
+      [studentProfile.id]: [],
     },
     skillMastery: {
-      [reviewerProfile.id]: createDefaultSkillMastery(false),
-      [studentProfile.id]: createDefaultSkillMastery(true),
+      [reviewerProfile.id]: createZeroSkillMastery(),
+      [studentProfile.id]: createZeroSkillMastery(),
     },
     customProblems: {
       [reviewerProfile.id]: [],
@@ -400,9 +347,9 @@ function resolveDbFilePath(): string {
     if (!fs.existsSync(localDataDir)) {
       fs.mkdirSync(localDataDir, { recursive: true });
     }
-    return path.join(localDataDir, "tutor-store-v3.json");
+    return path.join(localDataDir, "tutor-store-v4.json");
   } catch {
-    return path.join("/tmp", "ai-math-tutor-store-v3.json");
+    return path.join("/tmp", "ai-math-tutor-store-v4.json");
   }
 }
 
@@ -464,24 +411,20 @@ export function getOrInitProfileState(profileId: string) {
   if (!db.mistakes[pid]) {
     db.mistakes[pid] = [];
   }
-  if (!db.skillMastery[pid]) {
-    db.skillMastery[pid] = createDefaultSkillMastery(false);
-  }
   if (!db.customProblems[pid]) {
     db.customProblems[pid] = [];
   }
 
   syncActiveSessionToWorkspaceHistory(db, pid);
+  const skillMastery = recomputeProfileSkillMastery(db, pid);
 
   const session = db.sessions[pid];
   const mistakes = db.mistakes[pid];
-  const skillMastery = db.skillMastery[pid];
   const availableProblems = [
     ...DEFAULT_PROBLEMS,
     ...(db.customProblems[pid] ?? []),
   ];
 
-  // Build map of problem statuses & full exerciseHistory list
   const workspacesMap = db.problemWorkspaces[pid] ?? {};
   const problemStatusMap: Record<
     string,
@@ -498,7 +441,7 @@ export function getOrInitProfileState(profileId: string) {
       (ws) =>
         ws.status !== "NOT_STARTED" ||
         ws.notebookSteps.length > 0 ||
-        ws.chatMessages.length > 1
+        ws.chatMessages.some((m) => m.role === "student")
     )
     .sort(
       (a, b) =>
@@ -544,12 +487,14 @@ export function getOrInitProfileState(profileId: string) {
   ).length;
 
   const overallMasteryPercent =
-    skillMastery.length > 0
-      ? Math.round(
-          skillMastery.reduce((acc, s) => acc + s.masteryPercent, 0) /
-            skillMastery.length
-        )
-      : 0;
+    completedProblemsCount === 0
+      ? 0
+      : skillMastery.length > 0
+        ? Math.round(
+            skillMastery.reduce((acc, s) => acc + s.masteryPercent, 0) /
+              skillMastery.length
+          )
+        : 0;
 
   return {
     db,
@@ -572,9 +517,6 @@ export function getOrInitProfileState(profileId: string) {
   };
 }
 
-/**
- * Switches to a problem, restoring its saved steps & chat history if the student already worked on it!
- */
 export function switchOrRestoreProblem(
   profileId: string,
   problem: MathProblem
@@ -585,7 +527,11 @@ export function switchOrRestoreProblem(
   const existingSession = db.sessions[profile.id];
   const savedWs = db.problemWorkspaces[profile.id]?.[problem.id];
 
-  if (savedWs && (savedWs.notebookSteps.length > 0 || savedWs.chatMessages.length > 1)) {
+  if (
+    savedWs &&
+    (savedWs.notebookSteps.length > 0 ||
+      savedWs.chatMessages.some((m) => m.role === "student"))
+  ) {
     db.sessions[profile.id] = {
       profileId: profile.id,
       currentProblem: savedWs.problem,
@@ -606,12 +552,13 @@ export function switchOrRestoreProblem(
   }
 
   syncActiveSessionToWorkspaceHistory(db, profile.id);
+  recomputeProfileSkillMastery(db, profile.id);
   saveDatabase(db);
   return getOrInitProfileState(profile.id);
 }
 
 /**
- * Forces a clean reset of a specific problem from scratch.
+ * Forces a clean reset of the specified problem, clearing its solved/assisted status and steps.
  */
 export function resetSessionProblem(
   profileId: string,
@@ -620,12 +567,25 @@ export function resetSessionProblem(
   const { db, profile } = getOrInitProfileState(profileId);
   const existingSession = db.sessions[profile.id];
   const freshSession = createInitialSessionForProfile(profile.id, problem);
+
   if (existingSession) {
-    freshSession.completedProblemIds = existingSession.completedProblemIds;
-    freshSession.assistedProblemIds = existingSession.assistedProblemIds;
+    // Remove this problem from completed and assisted lists so its badge resets to NOT_STARTED
+    freshSession.completedProblemIds =
+      existingSession.completedProblemIds.filter((id) => id !== problem.id);
+    freshSession.assistedProblemIds =
+      existingSession.assistedProblemIds.filter((id) => id !== problem.id);
   }
+
+  // Also clear mistakes recorded for this specific problem on reset
+  if (db.mistakes[profile.id]) {
+    db.mistakes[profile.id] = db.mistakes[profile.id].filter(
+      (m) => m.problemId !== problem.id
+    );
+  }
+
   db.sessions[profile.id] = freshSession;
   syncActiveSessionToWorkspaceHistory(db, profile.id);
+  recomputeProfileSkillMastery(db, profile.id);
   saveDatabase(db);
   return getOrInitProfileState(profile.id);
 }
@@ -658,7 +618,7 @@ export function createNewProfile(
   db.sessions[id] = createInitialSessionForProfile(id);
   db.problemWorkspaces[id] = {};
   db.mistakes[id] = [];
-  db.skillMastery[id] = createDefaultSkillMastery(false);
+  db.skillMastery[id] = createZeroSkillMastery();
   db.customProblems[id] = [];
   syncActiveSessionToWorkspaceHistory(db, id);
   saveDatabase(db);
