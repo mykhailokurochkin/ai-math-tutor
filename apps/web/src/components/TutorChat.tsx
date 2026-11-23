@@ -120,11 +120,6 @@ export function TutorChat({
                     Hint Level {msg.hintLevel}/3
                   </span>
                 ) : null}
-                {isTutor && msg.errorTag ? (
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#FFF8EB] text-[#B45309] border border-[#F3D8B6]">
-                    {msg.errorTag}
-                  </span>
-                ) : null}
               </div>
 
               <div
