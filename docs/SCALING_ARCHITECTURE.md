@@ -2,6 +2,15 @@
 
 This document outlines how to scale **AI Math Tutor** from this web prototype into a full cross-platform product (**Web, iOS, and Android**) and expand its capabilities over time.
 
+## Overall Scaling Directions (Summary)
+
+- **Platforms:** Shared TypeScript monorepo (`Next.js` for Web + `Expo / React Native` for iOS & Android).
+- **Core Input Modes:** Text + LaTeX → Handwriting Whiteboard (`Skia` + Vision OCR) → Voice Conversations.
+- **Infrastructure:** Local JSON prototype → `PostgreSQL / Supabase` + Auth + Student/Parent/Teacher roles.
+- **Content Creation:** AI-assisted Curriculum Builder allowing teachers, directors, or learners to upload materials and auto-generate new modules.
+- **Subject Expansion:** Algebra → Geometry (interactive diagrams & proofs) → Olympiad & Competition tracks.
+- **Monetization:** Freemium subscriptions and family/school plans via **Stripe** (Web) and **RevenueCat** (iOS/Android).
+
 ---
 
 ## 1. Cross-Platform Architecture (Web, iOS & Android by One Engineer)
@@ -39,14 +48,3 @@ Algebra relies primarily on symbolic equations, whereas **Geometry** is a distin
 To turn the platform into a sustainable product:
 - **Pricing Tiers:** Free tier (limited daily sessions) → **Student / Family Subscription** (unlimited AI tutoring, voice mode, handwriting whiteboard, parent progress reports) → **School / B2B Licenses** (teacher authoring tools and class analytics).
 - **Payment Infrastructure:** **Stripe** for Web subscriptions and B2B billing, paired with **RevenueCat** to manage iOS App Store and Google Play in-app subscriptions from a single unified backend webhook.
-
----
-
-## Overall Scaling Directions (Summary)
-
-- **Platforms:** Shared TypeScript monorepo (`Next.js` for Web + `Expo / React Native` for iOS & Android).
-- **Core Input Modes:** Text + LaTeX → Handwriting Whiteboard (`Skia` + Vision OCR) → Voice Conversations.
-- **Infrastructure:** Local JSON prototype → `PostgreSQL / Supabase` + Auth + Student/Parent/Teacher roles.
-- **Content Creation:** AI-assisted Curriculum Builder allowing teachers, directors, or learners to upload materials and auto-generate new modules.
-- **Subject Expansion:** Algebra → Geometry (interactive diagrams & proofs) → Olympiad & Competition tracks.
-- **Monetization:** Freemium subscriptions and family/school plans via **Stripe** (Web) and **RevenueCat** (iOS/Android).
