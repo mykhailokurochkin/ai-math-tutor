@@ -3,12 +3,9 @@
 import React, { useState } from "react";
 import {
   CheckCircle2,
-  AlertTriangle,
   Sparkles,
   X,
-  Award,
   BookOpen,
-  ShieldCheck,
   History,
   ChevronDown,
   ArrowUpRight,
@@ -57,15 +54,17 @@ export function ProgressModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4">
-      <div className="bg-white w-full max-w-4xl max-h-[88vh] rounded-3xl shadow-2xl border border-black/[0.08] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <div className="bg-white w-full max-w-4xl max-h-[85vh] rounded-3xl shadow-2xl border border-black/[0.08] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
         {/* Header with Segmented Tabs */}
         <div className="px-6 py-4 border-b border-black/[0.06] flex flex-wrap items-center justify-between gap-3 bg-[#FBFBFD] shrink-0">
           <div>
             <h2 className="text-base font-semibold text-[#1D1D1F] tracking-tight">
-              Learning Progress & Solution History
+              Learning Progress & History
             </h2>
             <p className="text-xs text-[#6E6E73]">
-              Track mastered topics, solved exercises, steps, and hints given
+              {progress.completedProblemsCount} of{" "}
+              {progress.totalProblemsCount ?? 16} exercises solved (
+              {progress.overallMasteryPercent}%)
             </p>
           </div>
 
@@ -81,7 +80,7 @@ export function ProgressModal({
                     : "text-[#6E6E73] hover:text-[#1D1D1F]"
                 }`}
               >
-                Overview & Topics
+                Topics
               </button>
               <button
                 type="button"
@@ -103,7 +102,7 @@ export function ProgressModal({
                     : "text-[#6E6E73] hover:text-[#1D1D1F]"
                 }`}
               >
-                Mistakes Log ({progress.mistakesLog.length})
+                Mistakes ({progress.mistakesLog.length})
               </button>
             </div>
 
@@ -118,96 +117,36 @@ export function ProgressModal({
         </div>
 
         {/* Body */}
-        <div className="p-6 overflow-y-auto space-y-6 flex-1 min-h-0">
-          {/* 4 Metric Cards Always Visible at Top */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-            <div className="p-4 rounded-2xl bg-[#F5F5F7] border border-black/[0.04]">
-              <div className="flex items-center justify-between text-[#6E6E73] text-xs font-medium mb-1">
-                <span>Overall Mastery</span>
-                <Award className="w-4 h-4 text-[#0071E3]" />
-              </div>
-              <div className="text-2xl font-semibold text-[#1D1D1F] tracking-tight">
-                {progress.overallMasteryPercent}%
-              </div>
-              <div className="text-[11px] text-[#6E6E73] mt-1">
-                Across curriculum topics
-              </div>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-[#F5F5F7] border border-black/[0.04]">
-              <div className="flex items-center justify-between text-[#6E6E73] text-xs font-medium mb-1">
-                <span>Completed Exercises</span>
-                <CheckCircle2 className="w-4 h-4 text-[#1D9E5E]" />
-              </div>
-              <div className="text-2xl font-semibold text-[#1D1D1F] tracking-tight">
-                {progress.completedProblemsCount}
-                {progress.totalProblemsCount
-                  ? ` / ${progress.totalProblemsCount}`
-                  : ""}
-              </div>
-              <div className="text-[11px] text-[#6E6E73] mt-1">
-                {progress.assistedProblemsCount > 0
-                  ? `${progress.assistedProblemsCount} with worked explanation`
-                  : "100% independent solutions"}
-              </div>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-[#F5F5F7] border border-black/[0.04]">
-              <div className="flex items-center justify-between text-[#6E6E73] text-xs font-medium mb-1">
-                <span>Mistakes Corrected</span>
-                <AlertTriangle className="w-4 h-4 text-[#D97706]" />
-              </div>
-              <div className="text-2xl font-semibold text-[#1D1D1F] tracking-tight">
-                {progress.resolvedMistakesCount} / {progress.totalMistakesCount}
-              </div>
-              <div className="text-[11px] text-[#6E6E73] mt-1">
-                Diagnosed by Symbolic Verifier
-              </div>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-[#F5F5F7] border border-black/[0.04]">
-              <div className="flex items-center justify-between text-[#6E6E73] text-xs font-medium mb-1">
-                <span>Verified Follow-Ups</span>
-                <ShieldCheck className="w-4 h-4 text-[#0071E3]" />
-              </div>
-              <div className="text-2xl font-semibold text-[#1D1D1F] tracking-tight">
-                {progress.verifiedMistakesCount}
-              </div>
-              <div className="text-[11px] text-[#6E6E73] mt-1">
-                Confirmed on similar problems
-              </div>
-            </div>
-          </div>
-
-          {/* TAB 1: Overview & Topics */}
+        <div className="p-6 overflow-y-auto flex-1 min-h-0">
+          {/* TAB 1: Topics Mastery */}
           {activeTab === "overview" && (
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <BookOpen className="w-4 h-4 text-[#0071E3]" />
                 <h3 className="text-sm font-semibold text-[#1D1D1F] tracking-tight">
-                  Topic Mastery Breakdown
+                  Progress by Topic
                 </h3>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                 {progress.skillMastery.map((skill) => (
                   <div
                     key={skill.topicId}
-                    className="p-4 rounded-2xl border border-black/[0.06] bg-white flex flex-col justify-between gap-2.5"
+                    className="p-4 rounded-2xl border border-black/[0.06] bg-[#FBFBFD] flex flex-col justify-between gap-3"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <div className="text-sm font-medium text-[#1D1D1F]">
+                        <div className="text-sm font-semibold text-[#1D1D1F]">
                           {skill.topicTitle}
                         </div>
                         <div className="text-xs text-[#6E6E73] mt-0.5">
-                          Property:{" "}
+                          Rule:{" "}
                           <MathFormula
                             latex={skill.formulaLatex}
                             className="text-[#1D1D1F]"
                           />
                         </div>
                       </div>
-                      <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#F5F5F7] text-[#1D1D1F]">
+                      <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-white border border-black/[0.06] text-[#1D1D1F]">
                         {skill.masteryPercent}%
                       </span>
                     </div>
@@ -219,14 +158,16 @@ export function ProgressModal({
                           style={{ width: `${skill.masteryPercent}%` }}
                         />
                       </div>
-                      <div className="flex items-center justify-between text-[11px] text-[#6E6E73] mt-1.5">
+                      <div className="flex items-center justify-between text-xs text-[#6E6E73] mt-2">
                         <span>
-                          Solved: {skill.solvedCount} / {skill.totalCount ?? 4}
+                          Solved:{" "}
+                          <strong className="text-[#1D1D1F] font-medium">
+                            {skill.solvedCount} / {skill.totalCount ?? 4}
+                          </strong>
                         </span>
-                        <span>Mistakes: {skill.mistakesCount}</span>
-                        <span>
-                          Verified Follow-Ups: {skill.verifiedFollowUpsCount}
-                        </span>
+                        {skill.mistakesCount > 0 && (
+                          <span>Mistakes: {skill.mistakesCount}</span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -241,12 +182,12 @@ export function ProgressModal({
               <div className="flex items-center gap-2 mb-3">
                 <History className="w-4 h-4 text-[#0071E3]" />
                 <h3 className="text-sm font-semibold text-[#1D1D1F] tracking-tight">
-                  Solved & Attempted Exercises (Steps & Hints History)
+                  Solved & Attempted Exercises
                 </h3>
               </div>
 
               {exerciseHistory.length === 0 ? (
-                <div className="p-6 rounded-2xl bg-[#F5F5F7] text-center text-xs text-[#6E6E73]">
+                <div className="p-8 rounded-2xl bg-[#F5F5F7] text-center text-xs text-[#6E6E73]">
                   No exercises worked on yet. Submit your first step in the workspace to build your history.
                 </div>
               ) : (
@@ -298,12 +239,16 @@ export function ProgressModal({
                               <span>{item.topicTitle}</span>
                               <span>·</span>
                               <span>{item.stepsCount} steps</span>
-                              <span>·</span>
-                              <span>{item.hintsGivenCount} hints given</span>
+                              {item.hintsGivenCount > 0 && (
+                                <>
+                                  <span>·</span>
+                                  <span>{item.hintsGivenCount} hints</span>
+                                </>
+                              )}
                               {item.mistakesCount > 0 && (
                                 <>
                                   <span>·</span>
-                                  <span className="text-[#D92D20] font-medium">
+                                  <span className="text-[#B45309] font-medium">
                                     {item.mistakesCount} mistakes
                                   </span>
                                 </>
@@ -337,7 +282,7 @@ export function ProgressModal({
                             {/* Column 1: Student Steps */}
                             <div className="space-y-2">
                               <div className="text-xs font-semibold text-[#1D1D1F]">
-                                Recorded Student Steps ({item.notebookSteps.length})
+                                Recorded Steps ({item.notebookSteps.length})
                               </div>
                               {item.notebookSteps.length === 0 ? (
                                 <p className="text-xs text-[#6E6E73]">
@@ -362,7 +307,7 @@ export function ProgressModal({
                                       </div>
                                       <span className="text-[10px] font-medium">
                                         {s.status === "ERROR_DETECTED"
-                                          ? s.errorCategory
+                                          ? "Needs Adjustment"
                                           : s.status === "CORRECT_FINAL"
                                             ? "Solved ✓"
                                             : "Valid"}
@@ -377,11 +322,11 @@ export function ProgressModal({
                             <div className="space-y-2">
                               <div className="text-xs font-semibold text-[#1D1D1F] flex items-center gap-1.5">
                                 <Lightbulb className="w-3.5 h-3.5 text-[#D97706]" />
-                                Tutor Hints & Guidance Given ({item.tutorHints.length})
+                                Tutor Hints Given ({item.tutorHints.length})
                               </div>
                               {item.tutorHints.length === 0 ? (
                                 <p className="text-xs text-[#6E6E73]">
-                                  Solved without needing Socratic hints.
+                                  Solved without needing hints.
                                 </p>
                               ) : (
                                 <div className="space-y-1.5">
@@ -392,11 +337,6 @@ export function ProgressModal({
                                     >
                                       <div className="flex items-center justify-between text-[10px] font-semibold text-[#B45309]">
                                         <span>Hint Level {h.hintLevel}/3</span>
-                                        {h.errorTag && (
-                                          <span className="font-mono">
-                                            {h.errorTag}
-                                          </span>
-                                        )}
                                       </div>
                                       <RichMathText
                                         content={h.content}
@@ -423,17 +363,13 @@ export function ProgressModal({
               <div className="flex items-center gap-2 mb-3">
                 <Sparkles className="w-4 h-4 text-[#D97706]" />
                 <h3 className="text-sm font-semibold text-[#1D1D1F] tracking-tight">
-                  Diagnosed Reasoning Mistakes Log
+                  Mistakes Log
                 </h3>
               </div>
 
               {progress.mistakesLog.length === 0 ? (
-                <div className="p-6 rounded-2xl bg-[#F5F5F7] text-center text-xs text-[#6E6E73]">
-                  No reasoning mistakes recorded in this session yet. Submit an incorrect step (such as{" "}
-                  <code className="px-1.5 py-0.5 bg-white rounded">
-                    3x + 4 = 2x + 19
-                  </code>
-                  ) to test error detection and tracking.
+                <div className="p-8 rounded-2xl bg-[#F5F5F7] text-center text-xs text-[#6E6E73]">
+                  No mistakes recorded in this session yet.
                 </div>
               ) : (
                 <div className="space-y-2.5">
@@ -443,13 +379,8 @@ export function ProgressModal({
                       className="p-3.5 rounded-2xl border border-black/[0.06] bg-[#FBFBFD] flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                     >
                       <div className="space-y-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-xs font-semibold text-[#1D1D1F]">
-                            {m.ruleTitle}
-                          </span>
-                          <span className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-black/[0.05] text-[#6E6E73]">
-                            {m.errorCategory}
-                          </span>
+                        <div className="text-xs font-semibold text-[#1D1D1F]">
+                          {m.ruleTitle}
                         </div>
                         <div className="text-xs text-[#6E6E73]">
                           Problem:{" "}
@@ -457,8 +388,8 @@ export function ProgressModal({
                             latex={m.problemEquation}
                             className="text-[#1D1D1F] font-medium"
                           />{" "}
-                          → Student Step:{" "}
-                          <span className="text-[#D92D20] font-medium">
+                          → Step:{" "}
+                          <span className="text-[#B45309] font-medium">
                             <MathFormula latex={m.studentWrongStep} />
                           </span>
                         </div>
@@ -471,12 +402,12 @@ export function ProgressModal({
                         {m.status === "VERIFIED_BY_FOLLOWUP" && (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[#ECFDF3] text-[#1D9E5E] border border-[#1D9E5E]/20">
                             <CheckCircle2 className="w-3.5 h-3.5" />
-                            Verified by Follow-Up
+                            Verified on Follow-Up
                           </span>
                         )}
                         {m.status === "CORRECTED" && (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[#FFFBEB] text-[#D97706] border border-[#D97706]/20">
-                            Corrected (Pending Follow-Up)
+                            Corrected
                           </span>
                         )}
                         {m.status === "OPEN" && (
