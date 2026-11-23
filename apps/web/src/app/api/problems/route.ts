@@ -7,6 +7,7 @@ import {
   type CurriculumTopicId,
 } from "@ai-math-tutor/tutor-harness";
 import {
+  deleteCustomProblem,
   getOrInitProfileState,
   resetSessionProblem,
   saveDatabase,
@@ -40,7 +41,8 @@ export async function POST(req: NextRequest) {
         | "load_test_scenario"
         | "reset_session"
         | "generate_more"
-        | "custom_problem";
+        | "custom_problem"
+        | "delete_problem";
       problemId?: string;
       topicFilter?: CurriculumTopicId | "all";
       count?: number;
@@ -110,6 +112,11 @@ export async function POST(req: NextRequest) {
       saveDatabase(currentState.db);
 
       const updated = switchOrRestoreProblem(profileId, customProb);
+      return formatStateResponse(updated);
+    }
+
+    if (body.action === "delete_problem" && body.problemId) {
+      const updated = deleteCustomProblem(profileId, body.problemId);
       return formatStateResponse(updated);
     }
 

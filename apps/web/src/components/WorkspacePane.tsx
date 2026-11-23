@@ -12,6 +12,7 @@ import {
   Layers,
   ArrowRight,
   MessageSquareQuote,
+  Trash2,
 } from "lucide-react";
 import { MathFormula, RichMathText } from "./MathRenderer";
 import type {
@@ -68,6 +69,7 @@ export function WorkspacePane({
   isSubmitting,
   onSelectProblem,
   onGenerateMoreProblems,
+  onDeleteProblem,
   onSubmitCustomProblem,
   onResetSession,
 }: {
@@ -83,6 +85,7 @@ export function WorkspacePane({
   isSubmitting: boolean;
   onSelectProblem: (problemId: string) => void;
   onGenerateMoreProblems: (topicId: CurriculumTopicId) => Promise<void>;
+  onDeleteProblem: (problemId: string) => void;
   onSubmitCustomProblem: (
     customEquation: string,
     topicId: CurriculumTopicId
@@ -382,18 +385,21 @@ export function WorkspacePane({
                   {topicProblems.map((prob, idx) => {
                     const isSelected = prob.id === currentProblem.id;
                     const status = problemStatusMap[prob.id] ?? "NOT_STARTED";
+                    const isDeletable =
+                      prob.id.startsWith("prob-gen-") ||
+                      prob.id.startsWith("prob-custom-") ||
+                      Boolean(prob.isReinforcement);
 
                     return (
-                      <button
+                      <div
                         key={prob.id}
-                        type="button"
                         onClick={() => {
                           setOpenMenu("none");
                           if (prob.id !== currentProblem.id) {
                             onSelectProblem(prob.id);
                           }
                         }}
-                        className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center justify-between gap-3 transition-colors cursor-pointer ${
+                        className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center justify-between gap-2 transition-colors cursor-pointer group ${
                           isSelected
                             ? "bg-[#0071E3]/[0.08] text-[#1D1D1F]"
                             : "hover:bg-[#F5F5F7] text-[#1D1D1F]"
@@ -429,8 +435,22 @@ export function WorkspacePane({
                               Follow-Up
                             </span>
                           )}
+                          {isDeletable && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onDeleteProblem(prob.id);
+                              }}
+                              className="w-6 h-6 rounded-lg text-[#86868B] hover:text-[#B45309] hover:bg-black/[0.06] flex items-center justify-center transition-colors cursor-pointer"
+                              title="Remove generated exercise"
+                              aria-label="Remove generated exercise"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </div>
-                      </button>
+                      </div>
                     );
                   })}
                 </div>

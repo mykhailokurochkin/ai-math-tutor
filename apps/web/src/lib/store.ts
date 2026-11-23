@@ -599,6 +599,71 @@ export function resetSessionProblem(
   return getOrInitProfileState(profile.id);
 }
 
+/**
+ * Completely deletes a generated or custom exercise from the topic and purges it from all statistics/history.
+ */
+export function deleteCustomProblem(profileId: string, problemId: string) {
+  const { db, profile } = getOrInitProfileState(profileId);
+  const pid = profile.id;
+
+  // Do not delete built-in base curriculum problems
+  if (DEFAULT_PROBLEMS.some((dp) => dp.id === problemId)) {
+    return getOrInitProfileState(pid);
+  }
+
+  // 1. Remove from customProblems
+  if (db.customProblems[pid]) {
+    db.customProblems[pid] = db.customProblems[pid].filter(
+      (p) => p.id !== problemId
+    );
+  }
+
+  // 2. Remove from problemWorkspaces history
+  if (db.problemWorkspaces[pid]) {
+    delete db.problemWorkspaces[pid][problemId];
+  }
+
+  // 3. Remove from session completed / assisted / pending lists
+  const session = db.sessions[pid];
+  if (session) {
+    session.completedProblemIds = session.completedProblemIds.filter(
+      (id) => id !== problemId
+    );
+    session.assistedProblemIds = session.assistedProblemIds.filter(
+      (id) => id !== problemId
+    );
+    if (session.pendingFollowUpProblem?.id === problemId) {
+      session.pendingFollowUpProblem = null;
+    }
+  }
+
+  // 4. Remove any mistakes logged for this problem
+  if (db.mistakes[pid]) {
+    db.mistakes[pid] = db.mistakes[pid].filter(
+      (m) => m.problemId !== problemId
+    );
+  }
+
+  // 5. If the deleted problem was the active problem, switch to the first problem in the same topic
+  if (session && session.currentProblem.id === problemId) {
+    const activeTopicId = session.currentProblem.topicId;
+    const remaining = [
+      ...DEFAULT_PROBLEMS,
+      ...(db.customProblems[pid] ?? []),
+    ];
+    const fallback =
+      remaining.find((p) => p.topicId === activeTopicId) ??
+      DEFAULT_PROBLEMS[0];
+    recomputeProfileSkillMastery(db, pid);
+    saveDatabase(db);
+    return switchOrRestoreProblem(pid, fallback);
+  }
+
+  recomputeProfileSkillMastery(db, pid);
+  saveDatabase(db);
+  return getOrInitProfileState(pid);
+}
+
 export function createNewProfile(
   name: string,
   grade = "Grade 7 Algebra · Classical USSR Curriculum",

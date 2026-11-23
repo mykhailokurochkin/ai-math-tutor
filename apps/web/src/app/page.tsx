@@ -139,6 +139,23 @@ export default function HomePage() {
     }
   };
 
+  const handleDeleteProblem = async (problemId: string) => {
+    if (!data) return;
+    const res = await fetch("/api/problems", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        profileId: data.profile.id,
+        action: "delete_problem",
+        problemId,
+      }),
+    });
+    if (res.ok) {
+      const json = (await res.json()) as AppStatePayload;
+      setData(json);
+    }
+  };
+
   const handleSubmitCustomProblem = async (
     customEquation: string,
     topicFilter: CurriculumTopicId
@@ -262,6 +279,7 @@ export default function HomePage() {
               isSubmitting={isSubmitting}
               onSelectProblem={(pid) => void handleSelectProblem(pid)}
               onGenerateMoreProblems={handleGenerateMoreProblems}
+              onDeleteProblem={(pid) => void handleDeleteProblem(pid)}
               onSubmitCustomProblem={(eq, tid) =>
                 void handleSubmitCustomProblem(eq, tid)
               }
