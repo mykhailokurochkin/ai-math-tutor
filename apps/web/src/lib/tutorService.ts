@@ -4,6 +4,7 @@ import {
   runTutorHarnessTurn,
 } from "@ai-math-tutor/tutor-harness";
 import {
+  createInitialChatForProblem,
   getOrInitProfileState,
   recomputeProfileSkillMastery,
   saveDatabase,
@@ -21,6 +22,24 @@ export async function processStudentStepInStore(params: {
   const { profileId, studentMessage, requestWorkedExample } = params;
   const state = getOrInitProfileState(profileId);
   const { db, profile, session } = state;
+
+  // If the previous problem generated a follow-up problem and the student now sends their next step,
+  // seamlessly activate the pending follow-up problem first!
+  if (session.pendingFollowUpProblem) {
+    const followUp = session.pendingFollowUpProblem;
+    const nextFsm = createInitialFSMState(followUp);
+    session.currentProblem = followUp;
+    session.pendingFollowUpProblem = null;
+    session.fsmState = nextFsm;
+    session.notebookSteps = [];
+    session.chatMessages = createInitialChatForProblem(
+      profile.id,
+      followUp,
+      nextFsm
+    );
+    syncActiveSessionToWorkspaceHistory(db, profile.id);
+  }
+
   const activeProblem = session.currentProblem;
 
   const conversationHistory = session.chatMessages
@@ -153,28 +172,15 @@ export async function processStudentStepInStore(params: {
       session.completedProblemIds.push(activeProblem.id);
     }
 
+    // Keep the solved problem and its final step visible on the board,
+    // and attach the generated follow-up problem so the user sees the transition clearly!
     session.fsmState = turn.nextFsmState;
+    session.pendingFollowUpProblem = turn.followUpProblem;
     syncActiveSessionToWorkspaceHistory(db, profile.id);
 
     const customList = db.customProblems[profile.id] ?? [];
     customList.push(turn.followUpProblem);
     db.customProblems[profile.id] = customList;
-
-    const nextFsm = createInitialFSMState(turn.followUpProblem);
-    session.currentProblem = turn.followUpProblem;
-    session.fsmState = nextFsm;
-    session.notebookSteps = [];
-    session.chatMessages = [
-      {
-        id: `msg-followup-${Date.now()}`,
-        role: "tutor",
-        content: turn.tutorMessage,
-        timestamp: now,
-        phaseBadge: nextFsm.phase,
-        hintLevel: 0,
-      },
-    ];
-    syncActiveSessionToWorkspaceHistory(db, profile.id);
   } else {
     session.fsmState = turn.nextFsmState;
     syncActiveSessionToWorkspaceHistory(db, profile.id);

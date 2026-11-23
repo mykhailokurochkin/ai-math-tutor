@@ -240,6 +240,8 @@ export default function HomePage() {
             <ReviewerBar
               isSubmitting={isSubmitting}
               showInspector={showInspector}
+              currentProblem={data.session.currentProblem}
+              pendingFollowUpProblem={data.session.pendingFollowUpProblem}
               onToggleInspector={() => setShowInspector((v) => !v)}
               onRunTestScenario={handleRunTestScenario}
               onQuickSendStep={(msg) => void handleSendTutorStep(msg, false)}
@@ -252,6 +254,7 @@ export default function HomePage() {
           <div className="lg:col-span-6 h-full min-h-0 overflow-hidden">
             <WorkspacePane
               currentProblem={data.session.currentProblem}
+              pendingFollowUpProblem={data.session.pendingFollowUpProblem}
               availableProblems={data.availableProblems}
               problemStatusMap={data.problemStatusMap ?? {}}
               fsmState={data.session.fsmState}

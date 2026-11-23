@@ -110,6 +110,7 @@ export interface ExerciseHistorySummary {
 export interface ActiveSessionRecord {
   profileId: string;
   currentProblem: MathProblem;
+  pendingFollowUpProblem?: MathProblem | null;
   fsmState: FSMState;
   notebookSteps: NotebookStepRecord[];
   chatMessages: ChatMessageRecord[];
@@ -165,6 +166,7 @@ function createInitialSessionForProfile(
   return {
     profileId,
     currentProblem: problem,
+    pendingFollowUpProblem: null,
     fsmState,
     notebookSteps: [],
     chatMessages: createInitialChatForProblem(profileId, problem, fsmState),
@@ -522,6 +524,7 @@ export function switchOrRestoreProblem(
     db.sessions[profile.id] = {
       profileId: profile.id,
       currentProblem: savedWs.problem,
+      pendingFollowUpProblem: null,
       fsmState: savedWs.fsmState,
       notebookSteps: [...savedWs.notebookSteps],
       chatMessages: [...savedWs.chatMessages],

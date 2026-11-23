@@ -11,6 +11,7 @@ import {
   Check,
   Plus,
   Layers,
+  ArrowRight,
 } from "lucide-react";
 import { MathFormula } from "./MathRenderer";
 import type {
@@ -51,7 +52,7 @@ const STATIC_CURRICULUM_TOPICS: Array<{
   {
     id: "topic-olympiad",
     title: "Multi-Bracket Equations",
-    shortTitle: "Multi-Bracket Equations",
+    shortTitle: "Multi-Bracket",
     formulaLatex: "a(mx + b) - k(x - c) = dx + e",
     difficulty: 3,
   },
@@ -59,6 +60,7 @@ const STATIC_CURRICULUM_TOPICS: Array<{
 
 export function WorkspacePane({
   currentProblem,
+  pendingFollowUpProblem,
   availableProblems,
   problemStatusMap,
   fsmState,
@@ -70,6 +72,7 @@ export function WorkspacePane({
   onResetSession,
 }: {
   currentProblem: MathProblem;
+  pendingFollowUpProblem?: MathProblem | null;
   availableProblems: MathProblem[];
   problemStatusMap: Record<
     string,
@@ -91,7 +94,8 @@ export function WorkspacePane({
   );
   const [isGeneratingMore, setIsGeneratingMore] = useState(false);
   const [customEqInput, setCustomEqInput] = useState("");
-  const headerControlsRef = useRef<HTMLDivElement>(null);
+  const topicMenuRef = useRef<HTMLDivElement>(null);
+  const exerciseMenuRef = useRef<HTMLDivElement>(null);
   const listScrollRef = useRef<HTMLDivElement>(null);
 
   const activeTopicId: CurriculumTopicId =
@@ -104,10 +108,18 @@ export function WorkspacePane({
     STATIC_CURRICULUM_TOPICS[0];
 
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
+    const handlePointerDown = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as Node;
       if (
-        headerControlsRef.current &&
-        !headerControlsRef.current.contains(e.target as Node)
+        openMenu === "topic" &&
+        topicMenuRef.current &&
+        !topicMenuRef.current.contains(target)
+      ) {
+        setOpenMenu("none");
+      } else if (
+        openMenu === "exercise" &&
+        exerciseMenuRef.current &&
+        !exerciseMenuRef.current.contains(target)
       ) {
         setOpenMenu("none");
       }
@@ -115,13 +127,15 @@ export function WorkspacePane({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpenMenu("none");
     };
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("touchstart", handlePointerDown);
     document.addEventListener("keydown", handleKeyDown);
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("touchstart", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, []);
+  }, [openMenu]);
 
   // Filter exercises strictly to the active topic
   const topicProblems = availableProblems.filter(
@@ -142,7 +156,6 @@ export function WorkspacePane({
 
     const matching = availableProblems.filter((p) => p.topicId === newTopicId);
     if (matching.length > 0) {
-      // Restore in-progress problem in that topic if any, else first unsolved, else first problem
       const inProgress = matching.find(
         (p) => problemStatusMap[p.id] === "IN_PROGRESS"
       );
@@ -160,7 +173,6 @@ export function WorkspacePane({
     setIsGeneratingMore(true);
     try {
       await onGenerateMoreProblems(activeTopicId);
-      // Keep dropdown open and scroll smoothly to newly added exercises
       setTimeout(() => {
         if (listScrollRef.current) {
           listScrollRef.current.scrollTo({
@@ -185,34 +197,39 @@ export function WorkspacePane({
   const currentStatus = problemStatusMap[currentProblem.id] ?? "NOT_STARTED";
 
   return (
-    <div className="bg-white rounded-3xl border border-black/[0.07] shadow-[0_2px_20px_rgba(0,0,0,0.03)] flex flex-col h-full min-h-0 overflow-hidden">
-      {/* Unified Header Row with Paired Custom Dropdowns: [1. Topic Dropdown] + [2. Exercise Dropdown] + [Reset] */}
-      <div
-        ref={headerControlsRef}
-        className="px-5 py-3.5 border-b border-black/[0.06] bg-[#FBFBFD] flex flex-wrap items-center justify-between gap-2.5 shrink-0"
-      >
-        <div className="flex flex-wrap items-center gap-2 min-w-0 flex-1">
+    <div className="bg-white rounded-3xl border border-black/[0.07] shadow-[0_2px_20px_rgba(0,0,0,0.03)] flex flex-col h-full min-h-0 overflow-hidden relative">
+      {/* Transparent Full-Screen Outside Click Backdrop when any menu is open */}
+      {openMenu !== "none" && (
+        <div
+          className="fixed inset-0 z-30"
+          onClick={() => setOpenMenu("none")}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Single-Line Non-Wrapping Top Header: [1. Topic Dropdown] + [2. Exercise Dropdown] + [Reset] */}
+      <div className="px-4 sm:px-5 py-3 border-b border-black/[0.06] bg-[#FBFBFD] flex items-center justify-between gap-2 flex-nowrap shrink-0">
+        <div className="flex items-center gap-2 min-w-0 flex-1 flex-nowrap">
           {/* DROPDOWN 1: TOPIC SELECTOR */}
-          <div className="relative">
+          <div className="relative min-w-0" ref={topicMenuRef}>
             <button
               type="button"
               disabled={isSubmitting}
               onClick={() =>
                 setOpenMenu((prev) => (prev === "topic" ? "none" : "topic"))
               }
-              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs transition-all cursor-pointer ${
+              className={`relative z-40 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs transition-all cursor-pointer max-w-full ${
                 openMenu === "topic"
                   ? "bg-white border-[#0071E3] shadow-sm text-[#1D1D1F]"
                   : "bg-[#F5F5F7] hover:bg-black/[0.06] border-black/[0.06] text-[#1D1D1F]"
               }`}
             >
               <Layers className="w-3.5 h-3.5 text-[#0071E3] shrink-0" />
-              <span className="text-[#6E6E73] font-medium">Topic:</span>
-              <span className="font-semibold text-[#1D1D1F] truncate max-w-[150px] sm:max-w-[190px]">
+              <span className="font-semibold text-[#1D1D1F] truncate max-w-[130px] sm:max-w-[165px]">
                 {activeTopicMeta.shortTitle}
               </span>
               <span
-                className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${
                   solvedInActiveTopic > 0
                     ? "bg-[#ECFDF3] text-[#1D9E5E]"
                     : "bg-black/[0.05] text-[#6E6E73]"
@@ -229,7 +246,7 @@ export function WorkspacePane({
 
             {/* Topic Popover Menu */}
             {openMenu === "topic" && (
-              <div className="absolute left-0 mt-1.5 w-[340px] sm:w-[380px] rounded-2xl bg-white/95 backdrop-blur-xl shadow-[0_14px_40px_rgba(0,0,0,0.14)] border border-black/[0.08] p-2 z-40 space-y-1">
+              <div className="absolute left-0 mt-1.5 w-[330px] sm:w-[370px] rounded-2xl bg-white/95 backdrop-blur-xl shadow-[0_14px_40px_rgba(0,0,0,0.14)] border border-black/[0.08] p-2 z-40 space-y-1">
                 <div className="px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-[#86868B]">
                   Select Algebra Topic
                 </div>
@@ -274,7 +291,7 @@ export function WorkspacePane({
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-1.5 shrink-0">
                         {inProgressCount > 0 && (
                           <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#0071E3]/10 text-[#0071E3]">
                             Active
@@ -287,7 +304,7 @@ export function WorkspacePane({
                               : "bg-black/[0.05] text-[#6E6E73]"
                           }`}
                         >
-                          {solvedCount}/{items.length} solved
+                          {solvedCount}/{items.length}
                         </span>
                         {isSelected && (
                           <div className="w-5 h-5 rounded-full bg-[#0071E3] text-white flex items-center justify-center">
@@ -302,8 +319,8 @@ export function WorkspacePane({
             )}
           </div>
 
-          {/* DROPDOWN 2: EXERCISE SELECTOR (WITHIN ACTIVE TOPIC) */}
-          <div className="relative">
+          {/* DROPDOWN 2: COMPACT EXERCISE SELECTOR (Never wraps into a second row) */}
+          <div className="relative shrink-0" ref={exerciseMenuRef}>
             <button
               type="button"
               disabled={isSubmitting}
@@ -312,21 +329,21 @@ export function WorkspacePane({
                   prev === "exercise" ? "none" : "exercise"
                 )
               }
-              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs transition-all cursor-pointer ${
+              className={`relative z-40 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs transition-all cursor-pointer ${
                 openMenu === "exercise"
                   ? "bg-white border-[#0071E3] shadow-sm text-[#1D1D1F]"
                   : "bg-[#F5F5F7] hover:bg-black/[0.06] border-black/[0.06] text-[#1D1D1F]"
               }`}
             >
               <BookMarked className="w-3.5 h-3.5 text-[#0071E3] shrink-0" />
-              <span className="text-[#6E6E73] font-medium shrink-0">
-                #{currentIndexInTopic >= 0 ? currentIndexInTopic + 1 : 1}:
+              <span className="font-semibold text-[#1D1D1F] whitespace-nowrap">
+                Exercise #{currentIndexInTopic >= 0 ? currentIndexInTopic + 1 : 1}
               </span>
-              <span className="font-semibold text-[#1D1D1F] shrink-0">
-                <MathFormula latex={currentProblem.latex} />
+              <span className="text-[#86868B] text-[11px] whitespace-nowrap">
+                of {topicProblems.length}
               </span>
               {currentStatus === "SOLVED" && (
-                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#ECFDF3] text-[#1D9E5E] shrink-0">
+                <span className="w-4 h-4 rounded-full bg-[#ECFDF3] text-[#1D9E5E] text-[10px] font-bold flex items-center justify-center shrink-0">
                   ✓
                 </span>
               )}
@@ -344,7 +361,7 @@ export function WorkspacePane({
 
             {/* Exercise Popover Menu (Shows 4 at a time + Generate 4 More without closing) */}
             {openMenu === "exercise" && (
-              <div className="absolute left-0 mt-1.5 w-[350px] sm:w-[420px] rounded-2xl bg-white/95 backdrop-blur-xl shadow-[0_14px_40px_rgba(0,0,0,0.14)] border border-black/[0.08] p-2.5 z-40 space-y-2">
+              <div className="absolute left-0 sm:left-auto sm:right-0 mt-1.5 w-[340px] sm:w-[410px] rounded-2xl bg-white/95 backdrop-blur-xl shadow-[0_14px_40px_rgba(0,0,0,0.14)] border border-black/[0.08] p-2.5 z-40 space-y-2">
                 <div className="flex items-center justify-between px-2 pt-0.5">
                   <span className="text-[11px] font-semibold uppercase tracking-wider text-[#86868B]">
                     {activeTopicMeta.shortTitle} · {topicProblems.length} Exercises
@@ -459,11 +476,11 @@ export function WorkspacePane({
         <button
           onClick={onResetSession}
           disabled={isSubmitting}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-[#6E6E73] hover:text-[#1D1D1F] bg-black/[0.04] hover:bg-black/[0.08] transition-colors cursor-pointer shrink-0"
+          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-medium text-[#6E6E73] hover:text-[#1D1D1F] bg-black/[0.04] hover:bg-black/[0.08] transition-colors cursor-pointer shrink-0"
           title="Reset current exercise"
         >
           <RotateCcw className="w-3.5 h-3.5" />
-          Reset
+          <span className="hidden sm:inline">Reset</span>
         </button>
       </div>
 
@@ -497,7 +514,7 @@ export function WorkspacePane({
         <div className="flex items-center justify-between text-xs font-medium text-[#6E6E73] mb-1">
           <span>Solution Steps</span>
           <div className="flex items-center gap-3">
-            {fsmState.phase === "MASTERED" && (
+            {(fsmState.phase === "MASTERED" || currentStatus === "SOLVED") && (
               <span className="text-xs font-semibold text-[#1D9E5E]">
                 ✓ Solved & Verified
               </span>
@@ -590,6 +607,35 @@ export function WorkspacePane({
                 </div>
               );
             })}
+
+            {/* Follow-Up Problem Call-to-Action Card when generated after correcting an error */}
+            {pendingFollowUpProblem && (
+              <div className="p-4 rounded-2xl bg-[#0071E3]/[0.07] border border-[#0071E3]/25 flex flex-wrap items-center justify-between gap-3 mt-3">
+                <div className="space-y-0.5">
+                  <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0071E3]">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    Follow-Up Practice Problem Ready
+                  </div>
+                  <div className="text-sm font-medium text-[#1D1D1F]">
+                    Verify understanding on:{" "}
+                    <MathFormula
+                      latex={pendingFollowUpProblem.latex}
+                      className="font-semibold"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={() => onSelectProblem(pendingFollowUpProblem.id)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-semibold transition-all cursor-pointer shadow-sm shrink-0"
+                >
+                  <span>Start Follow-Up</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
