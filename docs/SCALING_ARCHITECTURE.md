@@ -1,7 +1,5 @@
 # Scaling Plan: From Prototype to Production Platform (Web, iOS & Android)
 
-This document outlines how to scale **AI Math Tutor** from this web prototype into a full cross-platform product (**Web, iOS, and Android**) and expand its capabilities over time.
-
 ## Overall Scaling Directions (Summary)
 
 - **Platforms:** Shared TypeScript monorepo (`Next.js` for Web + `Expo / React Native` for iOS & Android).
