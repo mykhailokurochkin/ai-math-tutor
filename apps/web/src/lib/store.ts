@@ -237,9 +237,7 @@ export function recomputeProfileSkillMastery(
 
   const records = CURRICULUM_RULES.map((rule) => {
     const matchingSolved = workspaces.filter(
-      (ws) =>
-        ws.status === "SOLVED" &&
-        ws.problem.targetSkill === rule.errorCategory
+      (ws) => ws.status === "SOLVED" && ws.problem.topicId === rule.id
     );
     const solvedCount = matchingSolved.length;
     const verifiedFollowUpsCount = matchingSolved.filter(
@@ -249,20 +247,9 @@ export function recomputeProfileSkillMastery(
       (m) => m.errorCategory === rule.errorCategory
     ).length;
 
-    let masteryPercent = 0;
-    if (solvedCount > 0) {
-      // Base 50% for first solved exercise in this skill, +25% for each additional or follow-up verification, minus penalty for open mistakes
-      const openMistakes = mistakes.filter(
-        (m) => m.errorCategory === rule.errorCategory && m.status === "OPEN"
-      ).length;
-      masteryPercent = Math.min(
-        100,
-        Math.max(
-          15,
-          50 + (solvedCount - 1) * 25 + verifiedFollowUpsCount * 15 - openMistakes * 15
-        )
-      );
-    }
+    // Strict linear progression: 0 solved = 0%, 1 solved = 25%, 2 solved = 50%, 3 solved = 75%, 4+ solved = 100%
+    const masteryPercent =
+      solvedCount === 0 ? 0 : Math.min(100, solvedCount * 25);
 
     return {
       topicId: rule.id,
@@ -347,9 +334,9 @@ function resolveDbFilePath(): string {
     if (!fs.existsSync(localDataDir)) {
       fs.mkdirSync(localDataDir, { recursive: true });
     }
-    return path.join(localDataDir, "tutor-store-v4.json");
+    return path.join(localDataDir, "tutor-store-v5.json");
   } catch {
-    return path.join("/tmp", "ai-math-tutor-store-v4.json");
+    return path.join("/tmp", "ai-math-tutor-store-v5.json");
   }
 }
 

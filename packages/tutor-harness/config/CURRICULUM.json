@@ -2,10 +2,10 @@
   "curriculumTitle": "Grade 7 Algebra · Classical USSR Curriculum (Kiselev / Makarychev)",
   "rules": [
     {
-      "id": "RULE_DISTRIBUTIVE",
+      "id": "topic-distributive",
       "errorCategory": "DISTRIBUTIVE_PROPERTY",
-      "titleUk": "Distributive Property of Multiplication",
-      "titleEn": "Distributive Property of Multiplication",
+      "titleUk": "Distributive Property (Equations with Parentheses)",
+      "titleEn": "Distributive Property (Equations with Parentheses)",
       "formulaLatex": "a(b + c) = ab + ac",
       "ussrMethodologyNote": "Kiselev's Elementary Algebra: To multiply a factor by a sum in parentheses, multiply that factor by every term inside the parentheses individually and add the products. A common mistake is multiplying only the first term.",
       "socraticHints": {
@@ -15,10 +15,10 @@
       }
     },
     {
-      "id": "RULE_TRANSPOSITION",
+      "id": "topic-transposition",
       "errorCategory": "SIGN_FLIP_OR_TRANSPOSITION",
-      "titleUk": "Transposition of Terms Across Equality",
-      "titleEn": "Transposition of Terms Across Equality",
+      "titleUk": "Transposition of Terms & Combining Like Terms",
+      "titleEn": "Transposition of Terms & Combining Like Terms",
       "formulaLatex": "A + B = C \\implies A = C - B",
       "ussrMethodologyNote": "When moving any term from one side of an equation to the other across '=', its sign must be reversed (plus becomes minus, minus becomes plus).",
       "socraticHints": {
@@ -28,29 +28,16 @@
       }
     },
     {
-      "id": "RULE_LIKE_TERMS",
+      "id": "topic-olympiad",
       "errorCategory": "COMBINE_LIKE_TERMS",
-      "titleUk": "Combining Like Terms",
-      "titleEn": "Combining Like Terms",
-      "formulaLatex": "ax + bx = (a + b)x",
-      "ussrMethodologyNote": "To combine like terms, add or subtract their numerical coefficients and attach the common variable part.",
+      "titleUk": "Multi-Bracket Equations (Olympiad Prep)",
+      "titleEn": "Multi-Bracket Equations (Olympiad Prep)",
+      "formulaLatex": "a(mx + b) - k(x - c) = dx + e",
+      "ussrMethodologyNote": "When expanding multiple brackets, pay special attention to negative multipliers before parentheses: subtracting a bracket reverses the sign of every term inside it.",
       "socraticHints": {
-        "level1": "You are very close! Check your arithmetic carefully when combining like terms.",
-        "level2Template": "Look at how you combined the $x$-terms or the constant numbers. One of those calculations has a small arithmetic slip.",
-        "level3Template": "Recalculate the coefficient of $x$ and the constant term on the right side, then write the simplified equation."
-      }
-    },
-    {
-      "id": "RULE_ISOLATION",
-      "errorCategory": "DIVISION_OR_ISOLATION",
-      "titleUk": "Isolating the Unknown Variable",
-      "titleEn": "Isolating the Unknown Variable",
-      "formulaLatex": "ax = b \\implies x = \\frac{b}{a}",
-      "ussrMethodologyNote": "To find an unknown factor, divide the product on the right side by the known coefficient of x.",
-      "socraticHints": {
-        "level1": "To isolate $x$ in an equation of the form $a \\cdot x = b$, what operation should we apply to both sides?",
-        "level2Template": "Check the coefficient in front of $x$ and the constant on the other side. Did you divide accurately?",
-        "level3Template": "Divide the constant term by the coefficient of $x$ and write $x = ...$"
+        "level1": "Expand each set of parentheses carefully first, paying attention to the signs in front of both brackets before combining like terms.",
+        "level2Template": "Check how you expanded the two sets of parentheses and combined the $x$-terms and constants on the left side.",
+        "level3Template": "Expand both brackets term by term, combine the $x$-terms and constants on the left side, and write the simplified equation."
       }
     }
   ],
@@ -58,8 +45,8 @@
     {
       "id": "prob-test-scenario",
       "topicId": "topic-distributive",
-      "topicTitle": "Linear Equations with Parentheses (Distributive Property)",
-      "gradeLevel": "Grade 7 Algebra · Classical USSR Curriculum",
+      "topicTitle": "Distributive Property",
+      "gradeLevel": "Grade 7 Algebra",
       "equation": "3(x + 4) = 2x + 19",
       "latex": "3(x + 4) = 2x + 19",
       "variable": "x",
@@ -68,12 +55,36 @@
       "difficulty": 1
     },
     {
-      "id": "prob-brackets-2",
+      "id": "prob-dist-2",
       "topicId": "topic-distributive",
-      "topicTitle": "Linear Equations with Parentheses (Distributive Property)",
-      "gradeLevel": "Grade 7 Algebra · Classical USSR Curriculum",
+      "topicTitle": "Distributive Property",
+      "gradeLevel": "Grade 7 Algebra",
       "equation": "5(x - 2) = 3x + 4",
       "latex": "5(x - 2) = 3x + 4",
+      "variable": "x",
+      "expectedRoot": 7,
+      "targetSkill": "DISTRIBUTIVE_PROPERTY",
+      "difficulty": 1
+    },
+    {
+      "id": "prob-dist-3",
+      "topicId": "topic-distributive",
+      "topicTitle": "Distributive Property",
+      "gradeLevel": "Grade 7 Algebra",
+      "equation": "4(x + 3) = 2x + 22",
+      "latex": "4(x + 3) = 2x + 22",
+      "variable": "x",
+      "expectedRoot": 5,
+      "targetSkill": "DISTRIBUTIVE_PROPERTY",
+      "difficulty": 1
+    },
+    {
+      "id": "prob-dist-4",
+      "topicId": "topic-distributive",
+      "topicTitle": "Distributive Property",
+      "gradeLevel": "Grade 7 Algebra",
+      "equation": "6(x - 1) = 4x + 8",
+      "latex": "6(x - 1) = 4x + 8",
       "variable": "x",
       "expectedRoot": 7,
       "targetSkill": "DISTRIBUTIVE_PROPERTY",
@@ -82,8 +93,8 @@
     {
       "id": "prob-transposition-1",
       "topicId": "topic-transposition",
-      "topicTitle": "Transposition of Terms & Combining Like Terms",
-      "gradeLevel": "Grade 7 Algebra · Classical USSR Curriculum",
+      "topicTitle": "Transposition & Signs",
+      "gradeLevel": "Grade 7 Algebra",
       "equation": "7x - 11 = 4x + 13",
       "latex": "7x - 11 = 4x + 13",
       "variable": "x",
@@ -92,14 +103,86 @@
       "difficulty": 1
     },
     {
+      "id": "prob-transposition-2",
+      "topicId": "topic-transposition",
+      "topicTitle": "Transposition & Signs",
+      "gradeLevel": "Grade 7 Algebra",
+      "equation": "5x + 9 = 2x + 27",
+      "latex": "5x + 9 = 2x + 27",
+      "variable": "x",
+      "expectedRoot": 6,
+      "targetSkill": "SIGN_FLIP_OR_TRANSPOSITION",
+      "difficulty": 1
+    },
+    {
+      "id": "prob-transposition-3",
+      "topicId": "topic-transposition",
+      "topicTitle": "Transposition & Signs",
+      "gradeLevel": "Grade 7 Algebra",
+      "equation": "8x - 15 = 3x + 20",
+      "latex": "8x - 15 = 3x + 20",
+      "variable": "x",
+      "expectedRoot": 7,
+      "targetSkill": "SIGN_FLIP_OR_TRANSPOSITION",
+      "difficulty": 2
+    },
+    {
+      "id": "prob-transposition-4",
+      "topicId": "topic-transposition",
+      "topicTitle": "Transposition & Signs",
+      "gradeLevel": "Grade 7 Algebra",
+      "equation": "9x - 14 = 5x + 10",
+      "latex": "9x - 14 = 5x + 10",
+      "variable": "x",
+      "expectedRoot": 6,
+      "targetSkill": "SIGN_FLIP_OR_TRANSPOSITION",
+      "difficulty": 2
+    },
+    {
       "id": "prob-olympiad-1",
       "topicId": "topic-olympiad",
-      "topicTitle": "Olympiad Prep · Multi-Bracket Linear Equations",
-      "gradeLevel": "Grade 7-8 · Skanavi Collection",
+      "topicTitle": "Multi-Bracket Equations",
+      "gradeLevel": "Grade 7-8 · Skanavi",
       "equation": "4(2x + 3) - 3(x - 1) = 3x + 27",
       "latex": "4(2x + 3) - 3(x - 1) = 3x + 27",
       "variable": "x",
       "expectedRoot": 6,
+      "targetSkill": "DISTRIBUTIVE_PROPERTY",
+      "difficulty": 3
+    },
+    {
+      "id": "prob-olympiad-2",
+      "topicId": "topic-olympiad",
+      "topicTitle": "Multi-Bracket Equations",
+      "gradeLevel": "Grade 7-8 · Skanavi",
+      "equation": "3(2x + 1) - 2(x - 2) = 2x + 15",
+      "latex": "3(2x + 1) - 2(x - 2) = 2x + 15",
+      "variable": "x",
+      "expectedRoot": 4,
+      "targetSkill": "DISTRIBUTIVE_PROPERTY",
+      "difficulty": 3
+    },
+    {
+      "id": "prob-olympiad-3",
+      "topicId": "topic-olympiad",
+      "topicTitle": "Multi-Bracket Equations",
+      "gradeLevel": "Grade 7-8 · Skanavi",
+      "equation": "5(x + 2) - 2(x - 1) = 2x + 17",
+      "latex": "5(x + 2) - 2(x - 1) = 2x + 17",
+      "variable": "x",
+      "expectedRoot": 5,
+      "targetSkill": "DISTRIBUTIVE_PROPERTY",
+      "difficulty": 3
+    },
+    {
+      "id": "prob-olympiad-4",
+      "topicId": "topic-olympiad",
+      "topicTitle": "Multi-Bracket Equations",
+      "gradeLevel": "Grade 7-8 · Skanavi",
+      "equation": "4(x + 3) - (x - 2) = 2x + 21",
+      "latex": "4(x + 3) - (x - 2) = 2x + 21",
+      "variable": "x",
+      "expectedRoot": 7,
       "targetSkill": "DISTRIBUTIVE_PROPERTY",
       "difficulty": 3
     }
