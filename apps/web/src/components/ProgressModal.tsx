@@ -23,6 +23,7 @@ import type {
 
 interface ProgressData {
   completedProblemsCount: number;
+  totalProblemsCount?: number;
   assistedProblemsCount: number;
   totalMistakesCount: number;
   resolvedMistakesCount: number;
@@ -140,6 +141,9 @@ export function ProgressModal({
               </div>
               <div className="text-2xl font-semibold text-[#1D1D1F] tracking-tight">
                 {progress.completedProblemsCount}
+                {progress.totalProblemsCount
+                  ? ` / ${progress.totalProblemsCount}`
+                  : ""}
               </div>
               <div className="text-[11px] text-[#6E6E73] mt-1">
                 {progress.assistedProblemsCount > 0
@@ -216,7 +220,9 @@ export function ProgressModal({
                         />
                       </div>
                       <div className="flex items-center justify-between text-[11px] text-[#6E6E73] mt-1.5">
-                        <span>Solved: {skill.solvedCount}</span>
+                        <span>
+                          Solved: {skill.solvedCount} / {skill.totalCount ?? 4}
+                        </span>
                         <span>Mistakes: {skill.mistakesCount}</span>
                         <span>
                           Verified Follow-Ups: {skill.verifiedFollowUpsCount}

@@ -71,6 +71,7 @@ export interface SkillMasteryRecord {
   formulaLatex: string;
   masteryPercent: number;
   solvedCount: number;
+  totalCount: number;
   mistakesCount: number;
   verifiedFollowUpsCount: number;
 }
@@ -131,16 +132,22 @@ export interface DatabaseSchema {
 }
 
 export function createZeroSkillMastery(): SkillMasteryRecord[] {
-  return CURRICULUM_RULES.map((rule) => ({
-    topicId: rule.id,
-    topicTitle: rule.titleEn,
-    errorCategory: rule.errorCategory,
-    formulaLatex: rule.formulaLatex,
-    masteryPercent: 0,
-    solvedCount: 0,
-    mistakesCount: 0,
-    verifiedFollowUpsCount: 0,
-  }));
+  return CURRICULUM_RULES.map((rule) => {
+    const defaultTotal = DEFAULT_PROBLEMS.filter(
+      (p) => p.topicId === rule.id
+    ).length;
+    return {
+      topicId: rule.id,
+      topicTitle: rule.titleEn,
+      errorCategory: rule.errorCategory,
+      formulaLatex: rule.formulaLatex,
+      masteryPercent: 0,
+      solvedCount: 0,
+      totalCount: defaultTotal || 4,
+      mistakesCount: 0,
+      verifiedFollowUpsCount: 0,
+    };
+  });
 }
 
 export function createInitialChatForProblem(
@@ -238,8 +245,15 @@ export function recomputeProfileSkillMastery(
 ): SkillMasteryRecord[] {
   const workspaces = Object.values(db.problemWorkspaces[profileId] ?? {});
   const mistakes = db.mistakes[profileId] ?? [];
+  const allProblems = [
+    ...DEFAULT_PROBLEMS,
+    ...(db.customProblems[profileId] ?? []),
+  ];
 
   const records = CURRICULUM_RULES.map((rule) => {
+    const topicProblems = allProblems.filter((p) => p.topicId === rule.id);
+    const totalCount = Math.max(1, topicProblems.length);
+
     const matchingSolved = workspaces.filter(
       (ws) => ws.status === "SOLVED" && ws.problem.topicId === rule.id
     );
@@ -251,9 +265,11 @@ export function recomputeProfileSkillMastery(
       (m) => m.errorCategory === rule.errorCategory
     ).length;
 
-    // Strict linear progression: 0 solved = 0%, 1 solved = 25%, 2 solved = 50%, 3 solved = 75%, 4+ solved = 100%
+    // Exact proportion of solved exercises out of all available exercises in this topic (e.g. 2/12 = 17%)
     const masteryPercent =
-      solvedCount === 0 ? 0 : Math.min(100, solvedCount * 25);
+      solvedCount === 0
+        ? 0
+        : Math.min(100, Math.round((solvedCount / totalCount) * 100));
 
     return {
       topicId: rule.id,
@@ -262,6 +278,7 @@ export function recomputeProfileSkillMastery(
       formulaLatex: rule.formulaLatex,
       masteryPercent,
       solvedCount,
+      totalCount,
       mistakesCount,
       verifiedFollowUpsCount,
     };
@@ -468,6 +485,7 @@ export function getOrInitProfileState(profileId: string) {
     }));
 
   const completedProblemsCount = session.completedProblemIds.length;
+  const totalProblemsCount = availableProblems.length;
   const assistedProblemsCount = session.assistedProblemIds.length;
   const totalMistakesCount = mistakes.length;
   const resolvedMistakesCount = mistakes.filter(
@@ -478,14 +496,12 @@ export function getOrInitProfileState(profileId: string) {
   ).length;
 
   const overallMasteryPercent =
-    completedProblemsCount === 0
+    completedProblemsCount === 0 || totalProblemsCount === 0
       ? 0
-      : skillMastery.length > 0
-        ? Math.round(
-            skillMastery.reduce((acc, s) => acc + s.masteryPercent, 0) /
-              skillMastery.length
-          )
-        : 0;
+      : Math.min(
+          100,
+          Math.round((completedProblemsCount / totalProblemsCount) * 100)
+        );
 
   return {
     db,
@@ -497,6 +513,7 @@ export function getOrInitProfileState(profileId: string) {
     exerciseHistory,
     progress: {
       completedProblemsCount,
+      totalProblemsCount,
       assistedProblemsCount,
       totalMistakesCount,
       resolvedMistakesCount,
