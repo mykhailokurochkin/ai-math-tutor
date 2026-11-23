@@ -8,7 +8,6 @@ import {
   Sparkles,
   BookMarked,
   ChevronDown,
-  Check,
   Plus,
   Layers,
   ArrowRight,
@@ -318,11 +317,6 @@ export function WorkspacePane({
                         >
                           {solvedCount}/{items.length}
                         </span>
-                        {isSelected && (
-                          <div className="w-5 h-5 rounded-full bg-[#0071E3] text-white flex items-center justify-center">
-                            <Check className="w-3 h-3" />
-                          </div>
-                        )}
                       </div>
                     </button>
                   );
@@ -434,11 +428,6 @@ export function WorkspacePane({
                             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#0071E3]/10 text-[#0071E3]">
                               Follow-Up
                             </span>
-                          )}
-                          {isSelected && (
-                            <div className="w-5 h-5 rounded-full bg-[#0071E3] text-white flex items-center justify-center">
-                              <Check className="w-3 h-3" />
-                            </div>
                           )}
                         </div>
                       </button>
