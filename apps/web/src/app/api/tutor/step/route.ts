@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
       requestWorkedExample?: boolean;
     };
 
-    const profileId = body.profileId || "reviewer";
+    const profileId = body.profileId || "student-default";
     const studentMessage = (body.studentMessage ?? "").trim();
 
     if (!studentMessage && !body.requestWorkedExample) {
@@ -33,6 +33,8 @@ export async function POST(req: NextRequest) {
       profiles: result.state.profiles,
       session: result.state.session,
       availableProblems: result.state.availableProblems,
+      problemStatusMap: result.state.problemStatusMap,
+      exerciseHistory: result.state.exerciseHistory,
       progress: result.state.progress,
       llmStatus: resolveActiveProviderInfo(),
     });

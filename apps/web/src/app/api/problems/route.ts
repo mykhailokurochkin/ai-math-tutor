@@ -1,12 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   createCustomMathProblem,
-  generateIsomorphicProblem,
+  generateProblemBatch,
   getTestScenarioProblem,
   resolveActiveProviderInfo,
+  type CurriculumTopicId,
 } from "@ai-math-tutor/tutor-harness";
-import { getOrInitProfileState, resetSessionProblem, saveDatabase } from "@/lib/store";
+import {
+  getOrInitProfileState,
+  resetSessionProblem,
+  saveDatabase,
+  switchOrRestoreProblem,
+} from "@/lib/store";
 import { processStudentStepInStore } from "@/lib/tutorService";
+
+function formatStateResponse(
+  state: ReturnType<typeof getOrInitProfileState>,
+  extra: Record<string, unknown> = {}
+) {
+  return NextResponse.json({
+    ...extra,
+    profile: state.profile,
+    profiles: state.profiles,
+    session: state.session,
+    availableProblems: state.availableProblems,
+    problemStatusMap: state.problemStatusMap,
+    exerciseHistory: state.exerciseHistory,
+    progress: state.progress,
+    llmStatus: resolveActiveProviderInfo(),
+  });
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,14 +39,16 @@ export async function POST(req: NextRequest) {
         | "select_problem"
         | "load_test_scenario"
         | "reset_session"
-        | "generate_new"
+        | "generate_more"
         | "custom_problem";
       problemId?: string;
+      topicFilter?: CurriculumTopicId | "all";
+      count?: number;
       customEquation?: string;
       autoInjectWrongStep?: boolean;
     };
 
-    const profileId = body.profileId || "reviewer";
+    const profileId = body.profileId || "student-default";
     const currentState = getOrInitProfileState(profileId);
 
     if (body.action === "load_test_scenario") {
@@ -35,55 +60,27 @@ export async function POST(req: NextRequest) {
           profileId,
           studentMessage: "3x + 4 = 2x + 19",
         });
-        return NextResponse.json({
-          turn: injected.turn,
-          profile: injected.state.profile,
-          profiles: injected.state.profiles,
-          session: injected.state.session,
-          availableProblems: injected.state.availableProblems,
-          progress: injected.state.progress,
-          llmStatus: resolveActiveProviderInfo(),
-        });
+        return formatStateResponse(injected.state, { turn: injected.turn });
       }
 
-      const fresh = getOrInitProfileState(profileId);
-      return NextResponse.json({
-        profile: fresh.profile,
-        profiles: fresh.profiles,
-        session: fresh.session,
-        availableProblems: fresh.availableProblems,
-        progress: fresh.progress,
-        llmStatus: resolveActiveProviderInfo(),
-      });
+      return formatStateResponse(getOrInitProfileState(profileId));
     }
 
-    if (body.action === "generate_new") {
-      const source = currentState.session.currentProblem;
-      const generated = generateIsomorphicProblem(
-        source,
-        source.targetSkill === "LINEAR_EQUATIONS"
-          ? "DISTRIBUTIVE_PROPERTY"
-          : source.targetSkill
-      );
-      generated.isReinforcement = false;
-      generated.topicTitle = source.topicTitle.replace(
-        " (Follow-Up Practice)",
-        ""
-      );
+    // Appends 4 new CAS-verified exercises to the dropdown WITHOUT resetting the current problem or closing the dropdown
+    if (body.action === "generate_more") {
+      const topicFilter = body.topicFilter || "all";
+      const count = body.count || 4;
+      const existingEqs = currentState.availableProblems.map((p) => p.equation);
 
-      const customList = currentState.db.customProblems[currentState.profile.id] ?? [];
-      customList.unshift(generated);
+      const newBatch = generateProblemBatch(topicFilter, count, existingEqs);
+      const customList =
+        currentState.db.customProblems[currentState.profile.id] ?? [];
+      customList.push(...newBatch);
       currentState.db.customProblems[currentState.profile.id] = customList;
       saveDatabase(currentState.db);
 
-      const updated = resetSessionProblem(profileId, generated);
-      return NextResponse.json({
-        profile: updated.profile,
-        profiles: updated.profiles,
-        session: updated.session,
-        availableProblems: updated.availableProblems,
-        progress: updated.progress,
-        llmStatus: resolveActiveProviderInfo(),
+      return formatStateResponse(getOrInitProfileState(profileId), {
+        generatedBatch: newBatch,
       });
     }
 
@@ -99,20 +96,14 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const customList = currentState.db.customProblems[currentState.profile.id] ?? [];
+      const customList =
+        currentState.db.customProblems[currentState.profile.id] ?? [];
       customList.push(customProb);
       currentState.db.customProblems[currentState.profile.id] = customList;
       saveDatabase(currentState.db);
 
-      const updated = resetSessionProblem(profileId, customProb);
-      return NextResponse.json({
-        profile: updated.profile,
-        profiles: updated.profiles,
-        session: updated.session,
-        availableProblems: updated.availableProblems,
-        progress: updated.progress,
-        llmStatus: resolveActiveProviderInfo(),
-      });
+      const updated = switchOrRestoreProblem(profileId, customProb);
+      return formatStateResponse(updated);
     }
 
     if (body.action === "select_problem" && body.problemId) {
@@ -120,15 +111,8 @@ export async function POST(req: NextRequest) {
         (p) => p.id === body.problemId
       );
       if (found) {
-        const updated = resetSessionProblem(profileId, found);
-        return NextResponse.json({
-          profile: updated.profile,
-          profiles: updated.profiles,
-          session: updated.session,
-          availableProblems: updated.availableProblems,
-          progress: updated.progress,
-          llmStatus: resolveActiveProviderInfo(),
-        });
+        const updated = switchOrRestoreProblem(profileId, found);
+        return formatStateResponse(updated);
       }
     }
 
@@ -136,14 +120,7 @@ export async function POST(req: NextRequest) {
       profileId,
       currentState.session.currentProblem
     );
-    return NextResponse.json({
-      profile: reset.profile,
-      profiles: reset.profiles,
-      session: reset.session,
-      availableProblems: reset.availableProblems,
-      progress: reset.progress,
-      llmStatus: resolveActiveProviderInfo(),
-    });
+    return formatStateResponse(reset);
   } catch (err) {
     return NextResponse.json(
       {

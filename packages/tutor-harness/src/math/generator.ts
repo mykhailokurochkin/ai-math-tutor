@@ -6,41 +6,98 @@ function randomInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+export type CurriculumTopicId =
+  | "topic-distributive"
+  | "topic-transposition"
+  | "topic-olympiad";
+
+export const STATIC_CURRICULUM_TOPICS: Array<{
+  id: CurriculumTopicId;
+  title: string;
+  shortTitle: string;
+  gradeLevel: string;
+  targetSkill: ErrorCategory;
+  difficulty: 1 | 2 | 3;
+}> = [
+  {
+    id: "topic-distributive",
+    title: "Linear Equations with Parentheses (Distributive Property)",
+    shortTitle: "Distributive Property",
+    gradeLevel: "Grade 7 Algebra · Classical USSR Curriculum",
+    targetSkill: "DISTRIBUTIVE_PROPERTY",
+    difficulty: 1,
+  },
+  {
+    id: "topic-transposition",
+    title: "Transposition of Terms & Combining Like Terms",
+    shortTitle: "Transposition & Signs",
+    gradeLevel: "Grade 7 Algebra · Classical USSR Curriculum",
+    targetSkill: "SIGN_FLIP_OR_TRANSPOSITION",
+    difficulty: 2,
+  },
+  {
+    id: "topic-olympiad",
+    title: "Olympiad Prep · Multi-Bracket Linear Equations",
+    shortTitle: "Multi-Bracket (Olympiad)",
+    gradeLevel: "Grade 7-8 · Skanavi Collection",
+    targetSkill: "DISTRIBUTIVE_PROPERTY",
+    difficulty: 3,
+  },
+];
+
 /**
- * Dynamically generates a fresh, CAS-verified isomorphic problem targeting a specific skill/misconception.
- * Uses randomized integer parameters and verifies via symbolic evaluation that the root is a clean integer.
+ * Generates a single CAS-verified problem for a given topic ID, avoiding equations in `avoidSet`.
  */
-export function generateIsomorphicProblem(
-  sourceProblem: MathProblem,
-  targetErrorCategory: ErrorCategory,
-  _seedIndex = 0
+export function generateVerifiedProblemForTopic(
+  topicId: CurriculumTopicId,
+  avoidSet: Set<string> = new Set(),
+  isReinforcement = false,
+  parentProblemId?: string
 ): MathProblem {
-  const effectiveCategory =
-    targetErrorCategory === "NONE" || targetErrorCategory === "INVALID_EXPRESSION"
-      ? sourceProblem.targetSkill === "LINEAR_EQUATIONS"
-        ? "DISTRIBUTIVE_PROPERTY"
-        : sourceProblem.targetSkill
-      : targetErrorCategory;
+  const topicMeta =
+    STATIC_CURRICULUM_TOPICS.find((t) => t.id === topicId) ??
+    STATIC_CURRICULUM_TOPICS[0];
 
   let equation = "";
   let expectedRoot = 5;
 
-  for (let attempt = 0; attempt < 20; attempt++) {
+  for (let attempt = 0; attempt < 30; attempt++) {
     const root = randomInt(2, 12);
 
-    if (effectiveCategory === "SIGN_FLIP_OR_TRANSPOSITION") {
-      const c = randomInt(2, 5);
-      const a = c + randomInt(1, 4);
-      const b = randomInt(-12, 12) || 5;
+    if (topicId === "topic-transposition") {
+      // Form: a*x ± b = c*x ± d
+      const c = randomInt(2, 6);
+      const a = c + randomInt(1, 5);
+      const b = randomInt(-15, 15) || 7;
       const d = (a - c) * root + b;
       if (d === 0) continue;
       const lhsB = b >= 0 ? `+ ${b}` : `- ${Math.abs(b)}`;
       const rhsD = d >= 0 ? `+ ${d}` : `- ${Math.abs(d)}`;
       equation = `${a}x ${lhsB} = ${c}x ${rhsD}`;
       expectedRoot = root;
+    } else if (topicId === "topic-olympiad") {
+      // Form: a(m*x + b) - k(x - c) = d*x + e
+      const a = randomInt(2, 4);
+      const m = randomInt(1, 2);
+      const b = randomInt(1, 5);
+      const k = randomInt(1, a * m - 1) || 1;
+      const c = randomInt(1, 4);
+      const netLeftX = a * m - k;
+      const d = Math.max(1, netLeftX - randomInt(1, 2));
+      if (netLeftX === d) continue;
+      const lhsValAtRoot = a * (m * root + b) - k * (root - c);
+      const e = lhsValAtRoot - d * root;
+      if (e === 0) continue;
+      const innerX = m === 1 ? "x" : `${m}x`;
+      const kPrefix = k === 1 ? "" : `${k}`;
+      const rhsX = d === 1 ? "x" : `${d}x`;
+      const rhsE = e >= 0 ? `+ ${e}` : `- ${Math.abs(e)}`;
+      equation = `${a}(${innerX} + ${b}) - ${kPrefix}(x - ${c}) = ${rhsX} ${rhsE}`;
+      expectedRoot = root;
     } else {
-      const a = randomInt(2, 6);
-      const b = randomInt(2, 8);
+      // Default: topic-distributive -> a(x ± b) = cx ± d
+      const a = randomInt(2, 7);
+      const b = randomInt(2, 9);
       const c = randomInt(1, a - 1);
       const useMinus = attempt % 3 === 1;
       const signedB = useMinus ? -b : b;
@@ -53,21 +110,19 @@ export function generateIsomorphicProblem(
       expectedRoot = root;
     }
 
-    if (equation && equation !== sourceProblem.equation) {
+    if (equation && !avoidSet.has(equation)) {
       break;
     }
   }
 
-  // Fallback safeguard if loop didn't produce a distinct equation
   if (!equation) {
     equation = "4(x + 3) = 3x + 17";
     expectedRoot = 5;
   }
 
-  // CAS Verification: confirm generated equation solves to exact expected integer root
   const [lhsStr, rhsStr] = equation.split("=").map((s) => s.trim());
-  const lhsPoly = evaluateToLinearPolynomial(lhsStr, sourceProblem.variable);
-  const rhsPoly = evaluateToLinearPolynomial(rhsStr, sourceProblem.variable);
+  const lhsPoly = evaluateToLinearPolynomial(lhsStr, "x");
+  const rhsPoly = evaluateToLinearPolynomial(rhsStr, "x");
   const verifiedRoot =
     lhsPoly && rhsPoly ? solveLinearRoot(lhsPoly, rhsPoly) : expectedRoot;
 
@@ -77,23 +132,90 @@ export function generateIsomorphicProblem(
     );
   }
 
-  const baseTitle = sourceProblem.topicTitle
-    .replace(" (Follow-Up Practice)", "")
-    .replace(" (Generated)", "");
-
   return {
-    id: `prob-gen-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 5)}`,
-    topicId: sourceProblem.topicId,
-    topicTitle: `${baseTitle} (Follow-Up Practice)`,
-    gradeLevel: sourceProblem.gradeLevel,
+    id: `prob-gen-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+    topicId: topicMeta.id,
+    topicTitle: isReinforcement
+      ? `${topicMeta.title} (Follow-Up Practice)`
+      : topicMeta.title,
+    gradeLevel: topicMeta.gradeLevel,
     equation,
     latex: equation,
-    variable: sourceProblem.variable,
+    variable: "x",
     expectedRoot,
-    targetSkill: effectiveCategory,
-    difficulty: sourceProblem.difficulty,
-    isReinforcement: true,
-    parentProblemId: sourceProblem.id,
+    targetSkill: topicMeta.targetSkill,
+    difficulty: topicMeta.difficulty,
+    isReinforcement,
+    parentProblemId,
+  };
+}
+
+/**
+ * Generates a batch of `count` (e.g., 4) unique, CAS-verified exercises for the dropdown.
+ */
+export function generateProblemBatch(
+  topicFilter: CurriculumTopicId | "all",
+  count = 4,
+  existingEquations: string[] = []
+): MathProblem[] {
+  const avoidSet = new Set(existingEquations);
+  const results: MathProblem[] = [];
+  const topicCycle: CurriculumTopicId[] = [
+    "topic-distributive",
+    "topic-transposition",
+    "topic-olympiad",
+  ];
+
+  for (let i = 0; i < count; i++) {
+    const targetTopic: CurriculumTopicId =
+      topicFilter === "all"
+        ? topicCycle[i % topicCycle.length]
+        : topicFilter;
+
+    const prob = generateVerifiedProblemForTopic(targetTopic, avoidSet, false);
+    avoidSet.add(prob.equation);
+    results.push(prob);
+  }
+
+  return results;
+}
+
+/**
+ * Dynamically generates a fresh, CAS-verified isomorphic follow-up problem targeting a specific misconception.
+ */
+export function generateIsomorphicProblem(
+  sourceProblem: MathProblem,
+  targetErrorCategory: ErrorCategory,
+  _seedIndex = 0
+): MathProblem {
+  let targetTopic: CurriculumTopicId = "topic-distributive";
+  if (
+    sourceProblem.topicId === "topic-olympiad" ||
+    sourceProblem.difficulty === 3
+  ) {
+    targetTopic = "topic-olympiad";
+  } else if (
+    targetErrorCategory === "SIGN_FLIP_OR_TRANSPOSITION" ||
+    sourceProblem.topicId === "topic-transposition"
+  ) {
+    targetTopic = "topic-transposition";
+  }
+
+  const avoidSet = new Set([sourceProblem.equation]);
+  const generated = generateVerifiedProblemForTopic(
+    targetTopic,
+    avoidSet,
+    true,
+    sourceProblem.id
+  );
+
+  return {
+    ...generated,
+    targetSkill:
+      targetErrorCategory !== "NONE" &&
+      targetErrorCategory !== "INVALID_EXPRESSION"
+        ? targetErrorCategory
+        : generated.targetSkill,
   };
 }
 

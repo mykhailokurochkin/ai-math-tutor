@@ -10,36 +10,57 @@ import {
   ChevronDown,
   Check,
   Plus,
-  Shuffle,
 } from "lucide-react";
 import { MathFormula } from "./MathRenderer";
-import type { MathProblem, FSMState } from "@ai-math-tutor/tutor-harness";
+import type {
+  MathProblem,
+  FSMState,
+  CurriculumTopicId,
+} from "@ai-math-tutor/tutor-harness";
 import type { NotebookStepRecord } from "@/lib/store";
+
+const TOPIC_FILTERS: Array<{
+  id: CurriculumTopicId | "all";
+  label: string;
+}> = [
+  { id: "all", label: "All Topics" },
+  { id: "topic-distributive", label: "Distributive Property" },
+  { id: "topic-transposition", label: "Transposition & Signs" },
+  { id: "topic-olympiad", label: "Multi-Bracket" },
+];
 
 export function WorkspacePane({
   currentProblem,
   availableProblems,
+  problemStatusMap,
   fsmState,
   notebookSteps,
   isSubmitting,
   onSelectProblem,
-  onGenerateNewProblem,
+  onGenerateMoreProblems,
   onSubmitCustomProblem,
   onResetSession,
 }: {
   currentProblem: MathProblem;
   availableProblems: MathProblem[];
+  problemStatusMap: Record<
+    string,
+    "NOT_STARTED" | "IN_PROGRESS" | "SOLVED" | "ASSISTED"
+  >;
   fsmState: FSMState;
   notebookSteps: NotebookStepRecord[];
   isSubmitting: boolean;
   onSelectProblem: (problemId: string) => void;
-  onGenerateNewProblem: () => void;
+  onGenerateMoreProblems: (topicFilter: CurriculumTopicId | "all") => Promise<void>;
   onSubmitCustomProblem: (customEquation: string) => void;
   onResetSession: () => void;
 }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [topicFilter, setTopicFilter] = useState<CurriculumTopicId | "all">("all");
+  const [isGeneratingMore, setIsGeneratingMore] = useState(false);
   const [customEqInput, setCustomEqInput] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const listScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -60,6 +81,30 @@ export function WorkspacePane({
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
+
+  const filteredProblems = availableProblems.filter((p) =>
+    topicFilter === "all" ? true : p.topicId === topicFilter
+  );
+
+  const handleGenerateMoreClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isGeneratingMore) return;
+    setIsGeneratingMore(true);
+    try {
+      await onGenerateMoreProblems(topicFilter);
+      // Smoothly scroll list down to reveal newly appended items without closing dropdown
+      setTimeout(() => {
+        if (listScrollRef.current) {
+          listScrollRef.current.scrollTo({
+            top: listScrollRef.current.scrollHeight,
+            behavior: "smooth",
+          });
+        }
+      }, 60);
+    } finally {
+      setIsGeneratingMore(false);
+    }
+  };
 
   const handleCustomSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,31 +152,49 @@ export function WorkspacePane({
               />
             </button>
 
-            {/* Custom Apple Popover Menu */}
+            {/* Custom Apple Popover Menu — Stays Open on Topic Filter & Generate 4 More */}
             {dropdownOpen && (
-              <div className="absolute left-0 mt-1.5 w-[340px] sm:w-[420px] rounded-2xl bg-white/95 backdrop-blur-xl shadow-[0_12px_36px_rgba(0,0,0,0.12)] border border-black/[0.08] p-2 z-40 space-y-2">
-                {/* Dynamic Generation Actions */}
-                <div className="flex items-center justify-between gap-2 px-1 pt-0.5">
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-[#86868B]">
-                    Exercises
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setDropdownOpen(false);
-                      onGenerateNewProblem();
-                    }}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-[#0071E3]/10 hover:bg-[#0071E3]/15 text-[#0071E3] transition-colors cursor-pointer"
-                  >
-                    <Shuffle className="w-3 h-3" />
-                    Generate New Problem
-                  </button>
+              <div className="absolute left-0 mt-1.5 w-[360px] sm:w-[460px] rounded-2xl bg-white/95 backdrop-blur-xl shadow-[0_14px_40px_rgba(0,0,0,0.14)] border border-black/[0.08] p-2.5 z-40 space-y-2.5">
+                {/* Static Topic Filter Pills */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between px-1">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-[#86868B]">
+                      Topics ({filteredProblems.length} exercises)
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1">
+                    {TOPIC_FILTERS.map((tf) => {
+                      const active = topicFilter === tf.id;
+                      return (
+                        <button
+                          key={tf.id}
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setTopicFilter(tf.id);
+                          }}
+                          className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors cursor-pointer ${
+                            active
+                              ? "bg-[#1D1D1F] text-white"
+                              : "bg-[#F5F5F7] text-[#6E6E73] hover:text-[#1D1D1F]"
+                          }`}
+                        >
+                          {tf.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
-                {/* Preset & Generated Problems List */}
-                <div className="max-h-60 overflow-y-auto space-y-1">
-                  {availableProblems.map((prob) => {
+                {/* Scrollable Exercises List (Shows ~4 items at a time) */}
+                <div
+                  ref={listScrollRef}
+                  className="max-h-[248px] overflow-y-auto space-y-1 pr-0.5"
+                >
+                  {filteredProblems.map((prob) => {
                     const isSelected = prob.id === currentProblem.id;
+                    const status = problemStatusMap[prob.id] ?? "NOT_STARTED";
+
                     return (
                       <button
                         key={prob.id}
@@ -153,6 +216,22 @@ export function WorkspacePane({
                             <span className="text-sm font-semibold text-[#1D1D1F]">
                               <MathFormula latex={prob.latex} />
                             </span>
+
+                            {status === "SOLVED" && (
+                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#ECFDF3] text-[#1D9E5E]">
+                                ✓ Solved
+                              </span>
+                            )}
+                            {status === "ASSISTED" && (
+                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#FFFBEB] text-[#D97706]">
+                                Assisted
+                              </span>
+                            )}
+                            {status === "IN_PROGRESS" && (
+                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#0071E3]/10 text-[#0071E3]">
+                                In Progress
+                              </span>
+                            )}
                             {prob.isReinforcement ? (
                               <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#0071E3]/10 text-[#0071E3]">
                                 Follow-Up
@@ -178,6 +257,19 @@ export function WorkspacePane({
                   })}
                 </div>
 
+                {/* Generate 4 More Button at Bottom of List (Does NOT close dropdown!) */}
+                <button
+                  type="button"
+                  disabled={isGeneratingMore}
+                  onClick={(e) => void handleGenerateMoreClick(e)}
+                  className="w-full py-2 px-3 rounded-xl bg-[#F5F5F7] hover:bg-black/[0.06] disabled:opacity-50 text-xs font-semibold text-[#0071E3] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  {isGeneratingMore
+                    ? "Generating 4 Exercises..."
+                    : "Generate 4 More Exercises"}
+                </button>
+
                 {/* Custom Equation Form */}
                 <form
                   onSubmit={handleCustomSubmit}
@@ -187,7 +279,7 @@ export function WorkspacePane({
                     type="text"
                     value={customEqInput}
                     onChange={(e) => setCustomEqInput(e.target.value)}
-                    placeholder="Or enter any equation: e.g. 2(x + 5) = x + 13"
+                    placeholder="Or enter custom equation: e.g. 2(x + 5) = x + 13"
                     className="flex-1 px-3 py-1.5 rounded-xl bg-[#F5F5F7] border border-black/[0.06] text-xs font-mono text-[#1D1D1F] placeholder:text-[#86868B] focus:outline-none focus:border-[#0071E3]"
                   />
                   <button
@@ -195,7 +287,6 @@ export function WorkspacePane({
                     disabled={!customEqInput.trim()}
                     className="px-2.5 py-1.5 rounded-xl bg-[#1D1D1F] disabled:opacity-40 text-white text-xs font-medium inline-flex items-center gap-1 cursor-pointer shrink-0"
                   >
-                    <Plus className="w-3.5 h-3.5" />
                     Solve
                   </button>
                 </form>

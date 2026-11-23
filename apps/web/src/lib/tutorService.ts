@@ -4,8 +4,10 @@ import {
   runTutorHarnessTurn,
 } from "@ai-math-tutor/tutor-harness";
 import {
+  createInitialChatForProblem,
   getOrInitProfileState,
   saveDatabase,
+  syncActiveSessionToWorkspaceHistory,
   type ChatMessageRecord,
   type MistakeLogRecord,
   type NotebookStepRecord,
@@ -169,14 +171,33 @@ export async function processStudentStepInStore(params: {
       session.completedProblemIds.push(activeProblem.id);
     }
 
+    // Save the finished problem's full history before switching to the follow-up problem!
+    session.fsmState = turn.nextFsmState;
+    syncActiveSessionToWorkspaceHistory(db, profile.id);
+
     const customList = db.customProblems[profile.id] ?? [];
     customList.push(turn.followUpProblem);
     db.customProblems[profile.id] = customList;
 
+    const nextFsm = createInitialFSMState(turn.followUpProblem);
     session.currentProblem = turn.followUpProblem;
-    session.fsmState = createInitialFSMState(turn.followUpProblem);
+    session.fsmState = nextFsm;
+    session.notebookSteps = [];
+    // Keep the tutor's message announcing the follow-up problem at the start of the follow-up chat
+    session.chatMessages = [
+      {
+        id: `msg-followup-${Date.now()}`,
+        role: "tutor",
+        content: turn.tutorMessage,
+        timestamp: now,
+        phaseBadge: nextFsm.phase,
+        hintLevel: 0,
+      },
+    ];
+    syncActiveSessionToWorkspaceHistory(db, profile.id);
   } else {
     session.fsmState = turn.nextFsmState;
+    syncActiveSessionToWorkspaceHistory(db, profile.id);
   }
 
   saveDatabase(db);

@@ -9,17 +9,26 @@ import { HarnessInspector } from "@/components/HarnessInspector";
 import { ProgressModal } from "@/components/ProgressModal";
 import type {
   ActiveSessionRecord,
+  ExerciseHistorySummary,
   MistakeLogRecord,
   SkillMasteryRecord,
   UserProfile,
 } from "@/lib/store";
-import type { MathProblem } from "@ai-math-tutor/tutor-harness";
+import type {
+  CurriculumTopicId,
+  MathProblem,
+} from "@ai-math-tutor/tutor-harness";
 
 interface AppStatePayload {
   profile: UserProfile;
   profiles: UserProfile[];
   session: ActiveSessionRecord;
   availableProblems: MathProblem[];
+  problemStatusMap: Record<
+    string,
+    "NOT_STARTED" | "IN_PROGRESS" | "SOLVED" | "ASSISTED"
+  >;
+  exerciseHistory: ExerciseHistorySummary[];
   progress: {
     completedProblemsCount: number;
     assistedProblemsCount: number;
@@ -38,13 +47,16 @@ interface AppStatePayload {
 
 export default function HomePage() {
   const [data, setData] = useState<AppStatePayload | null>(null);
-  const [activeProfileId, setActiveProfileId] = useState<string>("student-default");
+  const [activeProfileId, setActiveProfileId] =
+    useState<string>("student-default");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showInspector, setShowInspector] = useState(false);
   const [showProgressModal, setShowProgressModal] = useState(false);
 
   const fetchState = useCallback(async (profileId: string) => {
-    const res = await fetch(`/api/state?profileId=${encodeURIComponent(profileId)}`);
+    const res = await fetch(
+      `/api/state?profileId=${encodeURIComponent(profileId)}`
+    );
     if (res.ok) {
       const json = (await res.json()) as AppStatePayload;
       setData(json);
@@ -107,24 +119,23 @@ export default function HomePage() {
     }
   };
 
-  const handleGenerateNewProblem = async () => {
+  const handleGenerateMoreProblems = async (
+    topicFilter: CurriculumTopicId | "all"
+  ) => {
     if (!data) return;
-    setIsSubmitting(true);
-    try {
-      const res = await fetch("/api/problems", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          profileId: data.profile.id,
-          action: "generate_new",
-        }),
-      });
-      if (res.ok) {
-        const json = (await res.json()) as AppStatePayload;
-        setData(json);
-      }
-    } finally {
-      setIsSubmitting(false);
+    const res = await fetch("/api/problems", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        profileId: data.profile.id,
+        action: "generate_more",
+        topicFilter,
+        count: 4,
+      }),
+    });
+    if (res.ok) {
+      const json = (await res.json()) as AppStatePayload;
+      setData(json);
     }
   };
 
@@ -219,7 +230,7 @@ export default function HomePage() {
 
       {/* Main Content Container — Fixed Viewport Height, Zero Page Growth */}
       <main className="flex-1 min-h-0 max-w-[1440px] w-full mx-auto px-4 sm:px-6 py-4 flex flex-col gap-3.5 overflow-hidden">
-        {/* Exclusive Reviewer Toolbar (only visible in Tech Reviewer role) */}
+        {/* Exclusive Reviewer Toolbar (only visible in Reviewer View) */}
         {isReviewer && (
           <div className="shrink-0">
             <ReviewerBar
@@ -238,11 +249,12 @@ export default function HomePage() {
             <WorkspacePane
               currentProblem={data.session.currentProblem}
               availableProblems={data.availableProblems}
+              problemStatusMap={data.problemStatusMap ?? {}}
               fsmState={data.session.fsmState}
               notebookSteps={data.session.notebookSteps}
               isSubmitting={isSubmitting}
               onSelectProblem={(pid) => void handleSelectProblem(pid)}
-              onGenerateNewProblem={() => void handleGenerateNewProblem()}
+              onGenerateMoreProblems={handleGenerateMoreProblems}
               onSubmitCustomProblem={(eq) => void handleSubmitCustomProblem(eq)}
               onResetSession={() => void handleResetSession()}
             />
@@ -276,12 +288,13 @@ export default function HomePage() {
         )}
       </main>
 
-      {/* Progress & Mastery Modal */}
+      {/* Progress, Solution History & Mistakes Modal */}
       <ProgressModal
         open={showProgressModal}
         onClose={() => setShowProgressModal(false)}
-        profile={data.profile}
         progress={data.progress}
+        exerciseHistory={data.exerciseHistory ?? []}
+        onOpenProblemFromHistory={(pid) => void handleSelectProblem(pid)}
       />
     </div>
   );
