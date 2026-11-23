@@ -115,6 +115,8 @@ export interface GuardrailCheckTrace {
 
 export interface HarnessTrace {
   timestamp: string;
+  orchestrator?: string;
+  langGraphNodesExecuted?: string[];
   inputRaw: string;
   inputClassification: InputClassification;
   verification: VerificationResult;

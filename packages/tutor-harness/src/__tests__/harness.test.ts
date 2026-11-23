@@ -55,6 +55,15 @@ describe("Neuro-Symbolic Pedagogical Harness (@ai-math-tutor/tutor-harness)", ()
     expect(turn1.nextFsmState.phase).toBe("SOCRATIC_GUIDE");
     expect(turn1.nextFsmState.hintLevel).toBe(1);
     expect(turn1.nextFsmState.activeErrorCategory).toBe("DISTRIBUTIVE_PROPERTY");
+    expect(turn1.trace.orchestrator).toContain("LangGraph");
+    expect(turn1.trace.langGraphNodesExecuted).toEqual([
+      "normalize_input",
+      "symbolic_cas_verify",
+      "pedagogical_fsm",
+      "prepare_pedagogical_context",
+      "llm_socratic_tutor",
+      "socragate_guardrail",
+    ]);
     // Must NOT leak root x = 7 or corrected step 3x + 12 on Hint L1
     expect(turn1.tutorMessage.toLowerCase()).not.toContain("x = 7");
     expect(turn1.tutorMessage.toLowerCase()).not.toContain("3x + 12");
@@ -85,6 +94,9 @@ describe("Neuro-Symbolic Pedagogical Harness (@ai-math-tutor/tutor-harness)", ()
     expect(turn3.followUpProblem).toBeDefined();
     expect(turn3.followUpProblem?.isReinforcement).toBe(true);
     expect(turn3.followUpProblem?.equation).not.toBe(problem.equation);
+    expect(turn3.trace.langGraphNodesExecuted).toContain(
+      "generate_followup_problem"
+    );
 
     // Turn 4: Student solves the reinforcement problem cleanly -> MASTERED!
     const followUp = turn3.followUpProblem!;

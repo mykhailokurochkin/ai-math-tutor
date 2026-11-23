@@ -27,14 +27,17 @@ export function HarnessInspector({
     <section className="rounded-3xl bg-[#111114] text-[#F5F5F7] border border-white/10 shadow-xl overflow-hidden">
       {/* Top Bar */}
       <div className="px-5 py-3 bg-[#18181C] border-b border-white/[0.08] flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 flex-wrap">
           <div className="w-2.5 h-2.5 rounded-full bg-[#30D158] animate-pulse" />
           <Terminal className="w-4 h-4 text-[#0A84FF]" />
           <span className="text-xs font-semibold tracking-tight text-white">
-            AI Harness Inspector · Neuro-Symbolic Telemetry
+            LangGraph Harness Inspector · Neuro-Symbolic StateGraph
+          </span>
+          <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-[#BF5AF2]/15 text-[#BF5AF2]">
+            @langchain/langgraph
           </span>
           <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-white/[0.07] text-[#A1A1A6]">
-            Engine: {llmStatus.provider} ({llmStatus.modelName})
+            LLM: {llmStatus.provider} ({llmStatus.modelName})
           </span>
         </div>
 
@@ -53,6 +56,22 @@ export function HarnessInspector({
           )}
         </div>
       </div>
+
+      {latest?.langGraphNodesExecuted && (
+        <div className="px-5 py-2 bg-[#141418] border-b border-white/[0.06] flex items-center gap-1.5 overflow-x-auto text-[11px] font-mono">
+          <span className="text-[#86868B] shrink-0 mr-1">Executed Graph Nodes:</span>
+          {latest.langGraphNodesExecuted.map((node, idx) => (
+            <React.Fragment key={`${node}-${idx}`}>
+              <span className="px-2 py-0.5 rounded-md bg-white/[0.06] text-[#F5F5F7] shrink-0">
+                {node}
+              </span>
+              {idx < latest.langGraphNodesExecuted!.length - 1 && (
+                <span className="text-[#6E6E73] shrink-0">→</span>
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+      )}
 
       {!latest ? (
         <div className="p-6 text-center text-xs text-[#A1A1A6]">

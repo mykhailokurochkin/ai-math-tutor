@@ -1,12 +1,22 @@
+import { Annotation, END, START, StateGraph } from "@langchain/langgraph";
 import type {
+  CurriculumRule,
+  ErrorCategory,
+  FSMState,
+  FSMTransitionTrace,
+  GuardrailCheckTrace,
   HarnessTrace,
   MathProblem,
   PedagogicalPhase,
   TutorTurnInput,
   TutorTurnOutput,
+  VerificationResult,
 } from "./types";
 import { lookupCurriculumRule } from "./config/pedagogyConfig";
-import { normalizeStudentInput } from "./math/normalizer";
+import {
+  normalizeStudentInput,
+  type NormalizedStudentInput,
+} from "./math/normalizer";
 import { verifyStudentStep } from "./math/verifier";
 import { generateIsomorphicProblem } from "./math/generator";
 import { computeFSMTransition } from "./fsm/stateMachine";
@@ -44,33 +54,111 @@ function buildPedagogicalDirective(
 }
 
 /**
- * Core Neuro-Symbolic Pedagogical Harness Execution Loop.
- * Orchestrates:
- * 1. Hybrid Input Normalization (extracting math from natural dialogue)
- * 2. Symbolic CAS Math Verification (CortexJS + Linear Polynomial Diff)
- * 3. Pedagogical Finite State Machine Transition (SOLVING -> SOCRATIC_GUIDE L1..L3 -> WORKED_EXAMPLE -> REINFORCEMENT -> MASTERED)
- * 4. Isomorphic Problem Generation (with CAS root verification)
- * 5. Curriculum Rule Lookup (USSR Kiselev/Makarychev methodology)
- * 6. LLM Generation + Output-Admission Guardrail (LeakageGate)
+ * LangGraph State Annotation defining the typed state channels flowing through
+ * the Neuro-Symbolic Pedagogical Graph.
  */
-export async function runTutorHarnessTurn(
-  input: TutorTurnInput
-): Promise<TutorTurnOutput> {
-  const startMs = Date.now();
-  const { problem, fsmState, studentMessage, requestWorkedExample } = input;
+export const TutorGraphState = Annotation.Root({
+  input: Annotation<TutorTurnInput>(),
+  startMs: Annotation<number>(),
+  executedNodes: Annotation<string[]>({
+    reducer: (prev, next) => [...prev, ...next],
+    default: () => [],
+  }),
+  normalized: Annotation<NormalizedStudentInput | null>({
+    reducer: (_, next) => next,
+    default: () => null,
+  }),
+  verification: Annotation<VerificationResult | null>({
+    reducer: (_, next) => next,
+    default: () => null,
+  }),
+  nextFsmState: Annotation<FSMState | null>({
+    reducer: (_, next) => next,
+    default: () => null,
+  }),
+  fsmTrace: Annotation<FSMTransitionTrace | null>({
+    reducer: (_, next) => next,
+    default: () => null,
+  }),
+  shouldGenerateReinforcement: Annotation<boolean>({
+    reducer: (_, next) => next,
+    default: () => false,
+  }),
+  followUpProblem: Annotation<MathProblem | undefined>({
+    reducer: (_, next) => next,
+    default: () => undefined,
+  }),
+  activeCategory: Annotation<ErrorCategory>({
+    reducer: (_, next) => next,
+    default: () => "NONE",
+  }),
+  curriculumRule: Annotation<CurriculumRule | null>({
+    reducer: (_, next) => next,
+    default: () => null,
+  }),
+  forbiddenReveals: Annotation<string[]>({
+    reducer: (_, next) => next,
+    default: () => [],
+  }),
+  pedagogicalDirective: Annotation<string>({
+    reducer: (_, next) => next,
+    default: () => "",
+  }),
+  candidateResponse: Annotation<string>({
+    reducer: (_, next) => next,
+    default: () => "",
+  }),
+  providerLabel: Annotation<string>({
+    reducer: (_, next) => next,
+    default: () => "",
+  }),
+  safeResponse: Annotation<string>({
+    reducer: (_, next) => next,
+    default: () => "",
+  }),
+  guardrailTrace: Annotation<GuardrailCheckTrace | null>({
+    reducer: (_, next) => next,
+    default: () => null,
+  }),
+  output: Annotation<TutorTurnOutput | null>({
+    reducer: (_, next) => next,
+    default: () => null,
+  }),
+});
 
-  // Step 1: Normalize raw student input and classify intent
+type TutorGraphStateType = typeof TutorGraphState.State;
+
+// Node 1: Hybrid Input Normalizer
+async function normalizeInputNode(state: TutorGraphStateType) {
+  const { problem, studentMessage } = state.input;
   const normalized = normalizeStudentInput(studentMessage, problem.variable);
+  return {
+    normalized,
+    executedNodes: ["normalize_input"],
+  };
+}
 
-  // Step 2: Run deterministic Symbolic Math Verifier against last valid equation
+// Node 2: Symbolic CAS Math Verifier (@cortex-js/compute-engine)
+async function symbolicCasVerifyNode(state: TutorGraphStateType) {
+  const { problem, fsmState, studentMessage } = state.input;
   const verification = verifyStudentStep(
     studentMessage,
     fsmState.lastValidEquation || problem.equation,
     problem.expectedRoot,
     problem.variable
   );
+  return {
+    verification,
+    executedNodes: ["symbolic_cas_verify"],
+  };
+}
 
-  // Step 3: Transition Pedagogical Finite State Machine
+// Node 3: Pedagogical Finite State Machine
+async function pedagogicalFsmNode(state: TutorGraphStateType) {
+  const { problem, fsmState, requestWorkedExample } = state.input;
+  const normalized = state.normalized!;
+  const verification = state.verification!;
+
   const fsmResult = computeFSMTransition(
     fsmState,
     problem,
@@ -78,26 +166,51 @@ export async function runTutorHarnessTurn(
     verification,
     Boolean(requestWorkedExample)
   );
-  const { nextState, trace: fsmTrace, shouldGenerateReinforcement } = fsmResult;
 
-  // Step 4: Generate CAS-verified isomorphic follow-up problem if transitioning to REINFORCEMENT or WORKED_EXAMPLE
-  let followUpProblem: MathProblem | undefined;
-  if (shouldGenerateReinforcement) {
-    followUpProblem = generateIsomorphicProblem(
-      problem,
-      nextState.activeErrorCategory,
-      nextState.totalMistakesInProblem
-    );
-  }
+  return {
+    nextFsmState: fsmResult.nextState,
+    fsmTrace: fsmResult.trace,
+    shouldGenerateReinforcement: fsmResult.shouldGenerateReinforcement,
+    executedNodes: ["pedagogical_fsm"],
+  };
+}
 
-  // Step 5: Lookup USSR Curriculum Rule for the active error category
-  const activeCategory =
+// Conditional Router after Pedagogical FSM
+function routeAfterFsm(
+  state: TutorGraphStateType
+): "generate_followup_problem" | "prepare_pedagogical_context" {
+  return state.shouldGenerateReinforcement
+    ? "generate_followup_problem"
+    : "prepare_pedagogical_context";
+}
+
+// Node 4 (Conditional): Isomorphic Follow-Up Problem Generator with CAS Root Check
+async function generateFollowUpProblemNode(state: TutorGraphStateType) {
+  const { problem } = state.input;
+  const nextState = state.nextFsmState!;
+  const followUpProblem = generateIsomorphicProblem(
+    problem,
+    nextState.activeErrorCategory,
+    nextState.totalMistakesInProblem
+  );
+  return {
+    followUpProblem,
+    executedNodes: ["generate_followup_problem"],
+  };
+}
+
+// Node 5: Curriculum Rule Lookup & Hidden Symbolic Scratchpad Builder
+async function preparePedagogicalContextNode(state: TutorGraphStateType) {
+  const { problem } = state.input;
+  const verification = state.verification!;
+  const nextState = state.nextFsmState!;
+
+  const activeCategory: ErrorCategory =
     verification.errorCategory !== "NONE"
       ? verification.errorCategory
       : nextState.activeErrorCategory;
-  const curriculumRule = lookupCurriculumRule(activeCategory);
 
-  // Step 6: Build Hidden Symbolic Scratchpad & Forbidden Reveals
+  const curriculumRule = lookupCurriculumRule(activeCategory);
   const forbiddenReveals = getForbiddenReveals(
     problem,
     verification,
@@ -107,34 +220,56 @@ export async function runTutorHarnessTurn(
   const pedagogicalDirective = buildPedagogicalDirective(
     nextState.phase,
     nextState.hintLevel,
-    followUpProblem
+    state.followUpProblem
   );
 
-  // Step 7: Generate candidate response via LLM (or Neuro-Symbolic Guided Synthesizer)
-  const llmResult = await generateTutorResponse({
-    problem,
-    studentMessage,
-    classification: normalized.classification,
-    verification,
-    nextFsmState: nextState,
+  return {
+    activeCategory,
     curriculumRule,
     forbiddenReveals,
     pedagogicalDirective,
-    followUpProblem,
-    conversationHistory: input.conversationHistory,
+    executedNodes: ["prepare_pedagogical_context"],
+  };
+}
+
+// Node 6: LLM Socratic Response Generator
+async function llmSocraticTutorNode(state: TutorGraphStateType) {
+  const { problem, studentMessage, conversationHistory } = state.input;
+  const llmResult = await generateTutorResponse({
+    problem,
+    studentMessage,
+    classification: state.normalized!.classification,
+    verification: state.verification!,
+    nextFsmState: state.nextFsmState!,
+    curriculumRule: state.curriculumRule,
+    forbiddenReveals: state.forbiddenReveals,
+    pedagogicalDirective: state.pedagogicalDirective,
+    followUpProblem: state.followUpProblem,
+    conversationHistory,
   });
 
-  // Step 8: Run Output-Admission Control (LeakageGate)
+  return {
+    candidateResponse: llmResult.text,
+    providerLabel: llmResult.providerLabel,
+    executedNodes: ["llm_socratic_tutor"],
+  };
+}
+
+// Node 7: SocraGate Output-Admission Guardrail & Telemetry Assembly
+async function socragateGuardrailNode(state: TutorGraphStateType) {
+  const { problem, studentMessage } = state.input;
+  const verification = state.verification!;
+  const nextState = state.nextFsmState!;
+
   const guardrailResult = enforceLeakageGate(
-    llmResult.text,
+    state.candidateResponse,
     problem,
     verification,
     nextState.phase,
     nextState.hintLevel,
-    activeCategory
+    state.activeCategory
   );
 
-  // Determine high-level step status for UI highlighting
   let stepStatus: TutorTurnOutput["stepStatus"] = "GUIDANCE_TURN";
   if (nextState.phase === "WORKED_EXAMPLE") {
     stepStatus = "WORKED_EXAMPLE_GIVEN";
@@ -148,38 +283,95 @@ export async function runTutorHarnessTurn(
     }
   }
 
-  const latencyMs = Math.max(1, Date.now() - startMs);
+  const finalNodes = [...state.executedNodes, "socragate_guardrail"];
+  const latencyMs = Math.max(1, Date.now() - state.startMs);
 
   const trace: HarnessTrace = {
     timestamp: new Date().toISOString(),
+    orchestrator: "LangGraph StateGraph (@langchain/langgraph)",
+    langGraphNodesExecuted: finalNodes,
     inputRaw: studentMessage,
-    inputClassification: normalized.classification,
+    inputClassification: state.normalized!.classification,
     verification,
-    fsmTransition: fsmTrace,
-    curriculumLookup: curriculumRule
+    fsmTransition: state.fsmTrace!,
+    curriculumLookup: state.curriculumRule
       ? {
-          ruleId: curriculumRule.id,
-          ruleTitle: curriculumRule.titleUk,
-          formulaLatex: curriculumRule.formulaLatex,
-          ussrMethodologyNote: curriculumRule.ussrMethodologyNote,
+          ruleId: state.curriculumRule.id,
+          ruleTitle: state.curriculumRule.titleEn,
+          formulaLatex: state.curriculumRule.formulaLatex,
+          ussrMethodologyNote: state.curriculumRule.ussrMethodologyNote,
         }
       : null,
     hiddenScratchpad: {
-      forbiddenReveals,
-      pedagogicalDirective,
+      forbiddenReveals: state.forbiddenReveals,
+      pedagogicalDirective: state.pedagogicalDirective,
     },
     guardrailCheck: guardrailResult.trace,
-    generatedFollowUpProblem: followUpProblem,
-    llmProvider: llmResult.providerLabel,
+    generatedFollowUpProblem: state.followUpProblem,
+    llmProvider: state.providerLabel,
     latencyMs,
   };
 
-  return {
+  const output: TutorTurnOutput = {
     tutorMessage: guardrailResult.safeResponse,
     nextFsmState: nextState,
     verification,
     trace,
-    followUpProblem,
+    followUpProblem: state.followUpProblem,
     stepStatus,
   };
+
+  return {
+    safeResponse: guardrailResult.safeResponse,
+    guardrailTrace: guardrailResult.trace,
+    output,
+    executedNodes: ["socragate_guardrail"],
+  };
+}
+
+/**
+ * Builds and compiles the LangGraph StateGraph for the Neuro-Symbolic Math Tutor.
+ */
+export function createTutorLangGraph() {
+  const workflow = new StateGraph(TutorGraphState)
+    .addNode("normalize_input", normalizeInputNode)
+    .addNode("symbolic_cas_verify", symbolicCasVerifyNode)
+    .addNode("pedagogical_fsm", pedagogicalFsmNode)
+    .addNode("generate_followup_problem", generateFollowUpProblemNode)
+    .addNode("prepare_pedagogical_context", preparePedagogicalContextNode)
+    .addNode("llm_socratic_tutor", llmSocraticTutorNode)
+    .addNode("socragate_guardrail", socragateGuardrailNode)
+    .addEdge(START, "normalize_input")
+    .addEdge("normalize_input", "symbolic_cas_verify")
+    .addEdge("symbolic_cas_verify", "pedagogical_fsm")
+    .addConditionalEdges("pedagogical_fsm", routeAfterFsm, {
+      generate_followup_problem: "generate_followup_problem",
+      prepare_pedagogical_context: "prepare_pedagogical_context",
+    })
+    .addEdge("generate_followup_problem", "prepare_pedagogical_context")
+    .addEdge("prepare_pedagogical_context", "llm_socratic_tutor")
+    .addEdge("llm_socratic_tutor", "socragate_guardrail")
+    .addEdge("socragate_guardrail", END);
+
+  return workflow.compile();
+}
+
+const compiledTutorGraph = createTutorLangGraph();
+
+/**
+ * Core Neuro-Symbolic Pedagogical Harness Entry Point powered by LangGraph (`@langchain/langgraph`).
+ */
+export async function runTutorHarnessTurn(
+  input: TutorTurnInput
+): Promise<TutorTurnOutput> {
+  const finalState = await compiledTutorGraph.invoke({
+    input,
+    startMs: Date.now(),
+  });
+
+  if (!finalState.output) {
+    throw new Error("LangGraph execution did not produce a TutorTurnOutput");
+  }
+
+  return finalState.output;
 }

@@ -13,38 +13,36 @@ Most LLM-based math tutors rely on a single system prompt (*"You are a math tuto
 2. **The Compliance Trap (Answer Leakage):** When an impatient student asks *"Just tell me the answer"*, instruction-tuned models routinely leak the solution.
 3. **Lack of Structured Pedagogical Control:** Pure chat models do not deterministically enforce follow-up verification problems after a misconception is fixed.
 
-### Our Solution: `@ai-math-tutor/tutor-harness`
+### Our Solution: `@ai-math-tutor/tutor-harness` (Powered by LangGraph `StateGraph`)
 
-Instead of a thin API wrapper, this project implements a **Neuro-Symbolic Pedagogical Harness** that combines deterministic Computer Algebra System (CAS) verification with an explicit Pedagogical Finite State Machine (FSM):
+Instead of a thin API wrapper, this project implements a **Neuro-Symbolic Pedagogical Harness** orchestrated via **`@langchain/langgraph` (`StateGraph`)** that combines deterministic Computer Algebra System (CAS) verification with an explicit Pedagogical Finite State Machine (FSM):
 
 ```text
-Student Input ("3x + 4 = 2x + 19")
-   │
-   ▼
-1. Hybrid Input Normalizer (normalizer.ts)
-   Extracts equations from natural chat & normalizes ASCII math to LaTeX
-   │
-   ▼
-2. Symbolic CAS Math Verifier (verifier.ts · @cortex-js/compute-engine)
-   Evaluates LHS/RHS linear polynomials, checks exact root equivalence (x=15 vs x=7),
-   and diagnoses the exact reasoning error: DISTRIBUTIVE_PROPERTY (3x + 4 != 3x + 12)
-   │
-   ▼
-3. Pedagogical Finite State Machine (stateMachine.ts)
-   Controls transitions: SOLVING ──► SOCRATIC_GUIDE (Hint L1 → L2 → L3)
-                                 ──► WORKED_EXAMPLE (Fallback after 3 failed attempts)
-                                 ──► REINFORCEMENT (Mandatory follow-up problem after an error)
-                                 ──► MASTERED
-   │
-   ▼
-4. Isomorphic Problem Generator (generator.ts)
-   When an error is corrected and solved, generates a similar problem targeting
-   the exact same rule (e.g. 4(x + 3) = 3x + 17) and verifies via CAS that its root is an integer
-   │
-   ▼
-5. LLM Generation + Output-Admission Guardrail (provider.ts + leakageGate.ts)
-   Injects the verified CAS scratchpad into the LLM prompt (Gemini / OpenAI / Anthropic)
-   and screens the generated response to block premature answer leakage.
+START
+  │
+  ▼
+[normalize_input]              (normalizer.ts: extracts equations & normalizes ASCII -> LaTeX)
+  │
+  ▼
+[symbolic_cas_verify]          (verifier.ts · @cortex-js/compute-engine: polynomial diff & error taxonomy)
+  │
+  ▼
+[pedagogical_fsm]              (stateMachine.ts: SOLVING -> SOCRATIC_GUIDE L1..L3 -> WORKED_EXAMPLE -> REINFORCEMENT)
+  │
+  ├── (Conditional Edge: shouldGenerateReinforcement === true) ──► [generate_followup_problem] (generator.ts)
+  │                                                                         │
+  ◄─────────────────────────────────────────────────────────────────────────┘
+  ▼
+[prepare_pedagogical_context]  (USSR Curriculum lookup + Hidden Symbolic Scratchpad)
+  │
+  ▼
+[llm_socratic_tutor]           (provider.ts: Gemini / OpenAI / Anthropic via Vercel AI SDK)
+  │
+  ▼
+[socragate_guardrail]          (leakageGate.ts: output-admission control blocking premature answer leaks)
+  │
+  ▼
+END
 ```
 
 ---
