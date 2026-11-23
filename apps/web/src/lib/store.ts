@@ -36,6 +36,8 @@ export interface NotebookStepRecord {
     | "WORKED_EXAMPLE";
   errorCategory: ErrorCategory;
   diagnosticNote: string;
+  operationSummary?: string;
+  tutorComment?: string;
   timestamp: string;
 }
 

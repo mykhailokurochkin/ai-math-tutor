@@ -86,6 +86,27 @@ export async function processStudentStepInStore(params: {
         ? turn.verification.expectedNextCanonicalStep ?? activeProblem.equation
         : turn.verification.extractedEquation ?? studentMessage;
 
+    const prevEq = session.fsmState.lastValidEquation || activeProblem.equation;
+    const prevHadBrackets = /[()]/.test(prevEq);
+    const currHasBrackets = /[()]/.test(exprLatex);
+
+    let operationSummary = turn.verification.diagnosticSummary;
+    if (stepStatus === "CORRECT_FINAL") {
+      operationSummary = `Isolated variable ${activeProblem.variable} and found the verified solution ${activeProblem.variable} = ${activeProblem.expectedRoot}.`;
+    } else if (stepStatus === "CORRECT_INTERMEDIATE") {
+      if (prevHadBrackets && !currHasBrackets) {
+        operationSummary = `Expanded parentheses via Distributive Property (${turn.verification.lhsStudent?.formatted ?? ""} = ${turn.verification.rhsStudent?.formatted ?? ""}). Algebraic equivalence preserved.`;
+      } else {
+        operationSummary = `Transposed and simplified terms (${turn.verification.lhsStudent?.formatted ?? ""} = ${turn.verification.rhsStudent?.formatted ?? ""}) while preserving root ${activeProblem.variable} = ${activeProblem.expectedRoot}.`;
+      }
+    } else if (stepStatus === "WORKED_EXAMPLE") {
+      operationSummary = `Tutor provided a worked breakdown leading to $${exprLatex}$.`;
+    }
+
+    // Concise first paragraph / sentence of tutor commentary for this step
+    const tutorExcerpt =
+      turn.tutorMessage.split(/\n\n+/)[0]?.trim() ?? turn.tutorMessage;
+
     session.notebookSteps.push({
       id: `step-${Date.now()}-${session.notebookSteps.length + 1}`,
       stepNumber: session.notebookSteps.length + 1,
@@ -96,6 +117,8 @@ export async function processStudentStepInStore(params: {
       status: stepStatus,
       errorCategory: turn.verification.errorCategory,
       diagnosticNote: turn.verification.diagnosticSummary,
+      operationSummary,
+      tutorComment: tutorExcerpt,
       timestamp: now,
     });
   }

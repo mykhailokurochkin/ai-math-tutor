@@ -12,8 +12,9 @@ import {
   Plus,
   Layers,
   ArrowRight,
+  MessageSquareQuote,
 } from "lucide-react";
-import { MathFormula } from "./MathRenderer";
+import { MathFormula, RichMathText } from "./MathRenderer";
 import type {
   MathProblem,
   FSMState,
@@ -92,11 +93,22 @@ export function WorkspacePane({
   const [openMenu, setOpenMenu] = useState<"none" | "topic" | "exercise">(
     "none"
   );
+  const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
   const [isGeneratingMore, setIsGeneratingMore] = useState(false);
   const [customEqInput, setCustomEqInput] = useState("");
   const topicMenuRef = useRef<HTMLDivElement>(null);
   const exerciseMenuRef = useRef<HTMLDivElement>(null);
   const listScrollRef = useRef<HTMLDivElement>(null);
+
+  // Automatically select the newest step whenever a new step is added
+  const latestStepId =
+    notebookSteps.length > 0
+      ? notebookSteps[notebookSteps.length - 1].id
+      : null;
+
+  useEffect(() => {
+    setSelectedStepId(latestStepId);
+  }, [latestStepId, currentProblem.id]);
 
   const activeTopicId: CurriculumTopicId =
     STATIC_CURRICULUM_TOPICS.some((t) => t.id === currentProblem.topicId)
@@ -512,7 +524,14 @@ export function WorkspacePane({
       {/* Notebook Steps Grid Surface (Strictly Scrollable Internally) */}
       <div className="flex-1 min-h-0 p-6 overflow-y-auto space-y-3 bg-[radial-gradient(#00000010_1px,transparent_1px)] [background-size:18px_18px]">
         <div className="flex items-center justify-between text-xs font-medium text-[#6E6E73] mb-1">
-          <span>Solution Steps</span>
+          <span>
+            Solution Steps{" "}
+            {notebookSteps.length > 0 && (
+              <span className="text-[11px] font-normal text-[#86868B]">
+                · click a step for details
+              </span>
+            )}
+          </span>
           <div className="flex items-center gap-3">
             {(fsmState.phase === "MASTERED" || currentStatus === "SOLVED") && (
               <span className="text-xs font-semibold text-[#1D9E5E]">
@@ -538,18 +557,32 @@ export function WorkspacePane({
               const isError = step.status === "ERROR_DETECTED";
               const isFinal = step.status === "CORRECT_FINAL";
               const isWorked = step.status === "WORKED_EXAMPLE";
+              const isSelected = selectedStepId === step.id;
 
               return (
                 <div
                   key={step.id}
-                  className={`p-4 rounded-2xl border transition-all ${
+                  onClick={() =>
+                    setSelectedStepId((prev) =>
+                      prev === step.id ? null : step.id
+                    )
+                  }
+                  className={`p-4 rounded-2xl border transition-all cursor-pointer ${
                     isError
-                      ? "bg-[#FFFBF7] border-[#F3D8B6]"
+                      ? isSelected
+                        ? "bg-[#FFFBF7] border-[#E8C28E] shadow-sm ring-2 ring-[#F3D8B6]/50"
+                        : "bg-[#FFFBF7]/90 border-[#F3D8B6] hover:border-[#E8C28E]"
                       : isFinal
-                        ? "bg-[#ECFDF3]/90 border-[#1D9E5E]/30"
+                        ? isSelected
+                          ? "bg-[#ECFDF3] border-[#1D9E5E]/45 shadow-sm ring-2 ring-[#1D9E5E]/15"
+                          : "bg-[#ECFDF3]/85 border-[#1D9E5E]/25 hover:border-[#1D9E5E]/40"
                         : isWorked
-                          ? "bg-[#FFFBEB]/90 border-[#D97706]/30"
-                          : "bg-white/95 border-black/[0.08]"
+                          ? isSelected
+                            ? "bg-[#FFFBEB] border-[#D97706]/40 shadow-sm"
+                            : "bg-[#FFFBEB]/85 border-[#D97706]/25"
+                          : isSelected
+                            ? "bg-white border-[#0071E3]/40 shadow-sm ring-2 ring-[#0071E3]/12"
+                            : "bg-white/95 border-black/[0.08] hover:border-black/[0.16]"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-3">
@@ -572,7 +605,7 @@ export function WorkspacePane({
                       </div>
                     </div>
 
-                    <div className="shrink-0">
+                    <div className="flex items-center gap-2 shrink-0">
                       {isError && (
                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[#FEF3C7]/80 text-[#B45309]">
                           <AlertCircle className="w-3.5 h-3.5" />
@@ -596,13 +629,44 @@ export function WorkspacePane({
                           Worked Explanation
                         </span>
                       )}
+                      <ChevronDown
+                        className={`w-3.5 h-3.5 text-[#86868B] transition-transform duration-150 ${
+                          isSelected ? "rotate-180" : ""
+                        }`}
+                      />
                     </div>
                   </div>
 
-                  {isError && (
-                    <p className="mt-2 text-xs text-[#92400E] pl-9 leading-relaxed">
-                      {step.diagnosticNote}
-                    </p>
+                  {/* Step Insight Popover / Expandable Sub-Card when selected */}
+                  {isSelected && (
+                    <div
+                      className={`mt-3 pt-2.5 border-t text-xs space-y-1.5 pl-9 ${
+                        isError
+                          ? "border-[#F3D8B6]/70 text-[#92400E]"
+                          : isFinal
+                            ? "border-[#1D9E5E]/20 text-[#166534]"
+                            : "border-black/[0.06] text-[#424245]"
+                      }`}
+                    >
+                      <div className="font-medium leading-relaxed">
+                        {step.operationSummary || step.diagnosticNote}
+                      </div>
+
+                      {step.tutorComment && (
+                        <div className="p-2.5 rounded-xl bg-black/[0.03] text-[#1D1D1F] flex items-start gap-2">
+                          <MessageSquareQuote className="w-3.5 h-3.5 text-[#0071E3] shrink-0 mt-0.5" />
+                          <div className="min-w-0 flex-1">
+                            <span className="text-[10px] font-semibold uppercase tracking-wider text-[#6E6E73] block mb-0.5">
+                              Tutor&apos;s Note
+                            </span>
+                            <RichMathText
+                              content={step.tutorComment}
+                              className="text-xs"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               );
