@@ -1,126 +1,56 @@
 # AI Math Tutor
 
-An interactive AI mathematics tutor inspired by the classical USSR algebra curriculum. Built as a TypeScript monorepo with **Next.js**, **LangGraph (`@langchain/langgraph`)**, **CortexJS Compute Engine**, **KaTeX**, and **Vercel AI SDK**.
+An interactive AI mathematics tutor inspired by the classical USSR algebra curriculum. Built as a TypeScript monorepo using **Next.js**, **LangGraph (`@langchain/langgraph`)**, **CortexJS Compute Engine**, **KaTeX**, and **Google Gemini (`gemini-3.5-flash-lite`)**.
 
 - **Live Demo:** [https://ai-math-tutor-sable.vercel.app](https://ai-math-tutor-sable.vercel.app)
-- **Cross-Platform Scaling Plan (Web, iOS, Android):** [`docs/SCALING_ARCHITECTURE.md`](./docs/SCALING_ARCHITECTURE.md)
+- **Scaling Plan (Web, iOS & Android):** [`docs/SCALING_ARCHITECTURE.md`](./docs/SCALING_ARCHITECTURE.md)
+
+## Quick Summary
+
+- **Neuro-Symbolic Verification:** Every student step is checked deterministically with `@cortex-js/compute-engine` before calling the LLM, eliminating math hallucinations.
+- **Adaptive Socratic Teaching:** A LangGraph state machine escalates hints across 3 levels (`L1` → `L2` → `L3`), blocks premature answer leaks, and generates a similar follow-up problem after an error is corrected.
+- **Two Modes:** Opens in **Student View** by default; switch to **Reviewer View** in the top bar to test the assignment scenario (`3(x + 4) = 2x + 19` → `3x + 4 = 2x + 19`) in a few clicks and view the live LangGraph trace.
+- **Progress & Topics:** Includes 4 algebra topics, on-demand exercise generation (plus custom equations and deletion of generated items), **Reset**, and a **Progress & History** dashboard.
 
 ---
 
-## 1. Overview & Architecture
+## 1. Architecture (`packages/tutor-harness`)
 
-Pure LLM chat wrappers often hallucinate intermediate algebraic steps or give away the final solution as soon as a student asks for it. This project solves that by combining a **deterministic symbolic math engine** with a **LangGraph pedagogical state machine** inside a shared package (`packages/tutor-harness`).
+Instead of relying on a single LLM prompt, each turn runs through a compiled **LangGraph `StateGraph`**:
 
-Every student message flows through a compiled **LangGraph `StateGraph`** with 7 nodes:
+`normalize_input` → `symbolic_cas_verify` → `pedagogical_fsm` → *(conditional: `generate_followup_problem`)* → `prepare_pedagogical_context` → `llm_socratic_tutor` → `socragate_guardrail`.
 
-```text
-normalize_input ──► symbolic_cas_verify ──► pedagogical_fsm
-                                                  │
-       ┌── (if error was fixed & solved) ─────────┴── (normal turn) ──┐
-       ▼                                                              ▼
-generate_followup_problem ────────────────────────────► prepare_pedagogical_context
-                                                                      │
-                                                                      ▼
-                                                             llm_socratic_tutor
-                                                                      │
-                                                                      ▼
-                                                             socragate_guardrail
-```
+The core logic lives in `packages/tutor-harness` with zero DOM dependencies so it can be shared directly between Web (`apps/web`) and future mobile apps (`Expo / React Native`).
 
 ---
 
-## 2. How Steps Are Parsed, Verified, and Recorded
+## 2. How Steps & Adaptive Hints Work
 
-Students interact through a **single unified chat input** on the right, while algebraic steps are automatically tracked on the **Solution Board** on the left:
-
-1. **Hybrid Input Parsing (`normalizer.ts`):**
-   - Extracts mathematical equations from both pure formula input (`3x + 12 = 2x + 19`) and natural sentences (*"I expanded the brackets and got 3x + 4 = 2x + 19"*).
-   - Conversational messages without an equation (e.g., *"Can you give me a hint?"* or answering a sub-question like *"12"*) are handled as dialogue turns in chat without adding a fake step to the board.
-2. **Symbolic Verification & Error Taxonomy (`verifier.ts`):**
-   - Evaluates the left-hand side (LHS) and right-hand side (RHS) of the student's equation into canonical linear polynomials ($Ax + B$) using `@cortex-js/compute-engine` and compares roots against the target equation.
-   - Each submitted equation is recorded on the Solution Board with one of four statuses:
-     - **`Valid Step`**: Algebraically equivalent intermediate step (e.g., `3x + 12 = 2x + 19`).
-     - **`Solved`**: Final isolated root (e.g., `x = 7`).
-     - **`Needs Adjustment`**: Non-equivalent step. The verifier deterministically classifies the reasoning error into:
-       - `DISTRIBUTIVE_PROPERTY` (e.g., `3(x + 4)` expanded to `3x + 4` instead of `3x + 12`)
-       - `SIGN_FLIP_OR_TRANSPOSITION` (moving a term across `=` without reversing its sign)
-       - `COMBINE_LIKE_TERMS` (arithmetic error when grouping $x$-terms or constants)
-       - `DIVISION_OR_ISOLATION` (error in final division to isolate $x$)
-     - **`Worked Explanation`**: Step breakdown provided by the tutor after failed attempts.
-3. **Interactive Step Insights:**
-   - Clicking any recorded step (`#1`, `#2`, `#3`...) on the Solution Board expands an insight panel explaining **what transformation was performed** (or why it needed adjustment) along with the **Tutor's Note** for that specific step.
+- **Unified Input & Step Tracking:** Students write both equation steps (`3x + 12 = 2x + 19`) and questions in a single chat input. Mathematical equations are extracted automatically (`normalizer.ts`), verified symbolically (`verifier.ts`), and recorded on the left **Solution Board** as `Valid Step`, `Solved`, `Needs Adjustment`, or `Worked Explanation`.
+- **Interactive Step Insights:** Clicking any recorded step on the Solution Board expands a short explanation of the transformation performed along with the tutor's note for that step.
+- **Reasoning Error Diagnosis:** Non-equivalent steps are classified into concrete error types (`DISTRIBUTIVE_PROPERTY`, `SIGN_FLIP_OR_TRANSPOSITION`, `COMBINE_LIKE_TERMS`, `DIVISION_OR_ISOLATION`). On `3(x + 4) = 2x + 19` → `3x + 4 = 2x + 19`, the verifier detects that `3` was not multiplied by `4`.
+- **3-Level Socratic Hints & Guardrail:**
+  - **L1:** Conceptual prompt pointing to the mathematical rule (e.g., $a(b + c) = ab + ac$).
+  - **L2:** Focused question isolating the exact term or sign that was missed.
+  - **L3:** Atomic micro-step prompt to guide the final correction.
+  - **Leakage Guardrail (`leakageGate.ts`):** Screens LLM output during active solving so the final root is never leaked prematurely—even if the student asks for the answer directly.
+  - **Worked Explanation Fallback:** Unlocks after at least one failed attempt (or automatically after 3 failed attempts) so students never get stuck indefinitely.
+- **Follow-Up Practice:** Whenever a student fixes a mistake (or uses a worked explanation) and finishes an equation, the system dynamically generates a CAS-verified similar equation with an integer root to confirm independent understanding.
 
 ---
 
-## 3. Adaptive Hint Logic, Guardrails & Follow-Up Generation
+## 3. Two Interface Modes
 
-Instead of leaving pedagogical decisions to an unconstrained prompt, the **Pedagogical Finite State Machine (`stateMachine.ts`)** controls how hints and explanations are delivered:
-
-- **3-Level Progressive Socratic Scaffolding (`SOCRATIC_GUIDE`):**
-  - **Hint Level 1 (Rule Prompt):** Triggered on the 1st error or hint request. Asks a conceptual question pointing to the mathematical rule (e.g., Distributive Property $a(b + c) = ab + ac$) without revealing the corrected equation.
-  - **Hint Level 2 (Focused Term Check):** Triggered on the 2nd attempt. Directs the student's attention to the exact term or sign where the discrepancy occurred (e.g., *"You multiplied 3 by x, what happened to + 4?"*).
-  - **Hint Level 3 (Atomic Micro-Step):** Triggered on the 3rd attempt. Prompts the student to calculate one atomic sub-step (e.g., $3 \times 4 = 12$) and rewrite the equation.
-- **Answer-Leakage Guardrail (`leakageGate.ts`):**
-  - Screens candidate LLM responses during `SOLVING` and `SOCRATIC_GUIDE` phases. If the student asks *"Just tell me the answer"* and the LLM attempts to reveal `x = 7` (or leaks `3x + 12` on Hint Level 1), the guardrail intercepts the response and replaces it with a safe Socratic question.
-- **Worked Explanation Fallback (`WORKED_EXAMPLE`):**
-  - To prevent student frustration, after at least 1 failed attempt a **"Show Worked Step Explanation"** button unlocks in the chat (and triggers automatically if the student fails more than 3 times on the same step). It walks through the exact step and marks the exercise as `Assisted`.
-- **Mandatory Follow-Up Practice (`REINFORCEMENT` & `generator.ts`):**
-  - If a student solves an equation without errors on the first try, the exercise immediately transitions to `MASTERED`.
-  - If the student made an error (or used a worked explanation) along the way, solving `x = 7` transitions to `REINFORCEMENT`: the generator creates a new **CAS-verified similar problem** targeting the exact same skill (e.g., `4(x + 3) = 3x + 17`) so the student verifies understanding independently.
+- **`Student View` (Default):** Clean learning workspace with paired **Topic** and **Exercise** dropdowns (4 topics, `+ Generate 4 More Exercises`, custom equation input, delete option for generated exercises), Solution Board, AI Tutor Chat, and **Progress & History** modal (`Topics`, `Exercise History`, `Mistakes`).
+- **`Reviewer View`:** Adds a top **Test Scenario Flow** bar with sequential 1-click buttons (`1. Inject Error: 3x + 4 = 2x + 19` → `2. Fix Step: 3x + 12 = 2x + 19` → `3. Solve: x = 7` → `4. Solve Follow-Up`) and a collapsible **LangGraph Harness Inspector** showing the live node path, CAS polynomial comparison, FSM state, and guardrail check.
 
 ---
 
-## 4. Progress, Topics & Exercise Management
-
-- **Topic & Exercise Dropdowns:**
-  - The curriculum is organized into 4 core algebra topics (**Distributive Property**, **Transposition & Signs**, **Combining Like Terms**, **Multi-Bracket Equations**), each pre-loaded with 4 exercises.
-  - Inside the Exercise Dropdown, students can generate additional CAS-verified exercises (**`+ Generate 4 More Exercises`**), enter any custom linear equation (**`Or enter custom equation...`**), or delete generated exercises (which automatically removes them from statistics and recalculates progress).
-- **Dynamic Mastery Calculation & History (`Progress` Modal):**
-  - Topic mastery percentage is computed dynamically from the actual ratio of solved exercises to total exercises in that topic (`solvedCount / totalCount`, e.g., `2 / 4 = 50%`, `2 / 12 = 17%`).
-  - **Exercise History Tab:** Saves the complete workspace state for every attempted exercise (all student steps, statuses, and tutor hints given) and allows reopening any past exercise with its full history restored.
-  - **Mistakes Tab:** Tracks every diagnosed reasoning error (`Needs Correction` → `Corrected` → `Verified on Follow-Up`).
-
----
-
-## 5. Two Interface Modes: `Student View` vs. `Reviewer View`
-
-A segmented switcher in the top navigation bar lets you toggle between two modes:
-
-1. **`Student View` (Default):**
-   - Clean, distraction-free learning interface showing only the Solution Board, Topic/Exercise selectors, AI Tutor Chat, and Progress & History dashboard.
-2. **`Reviewer View` (For Technical Evaluation):**
-   - Unlocks the **Test Scenario Flow** toolbar at the top with 1-click sequential buttons to evaluate the assignment scenario in seconds:
-     - `1. Inject Error: 3x + 4 = 2x + 19` (loads `3(x + 4) = 2x + 19` and submits the erroneous step)
-     - `2. Fix Step: 3x + 12 = 2x + 19` (submits the corrected expansion)
-     - `3. Solve: x = 7` (completes the problem and triggers follow-up problem generation)
-     - `4. Solve Follow-Up` (solves the generated follow-up problem to verify mastery tracking)
-   - Unlocks the collapsible **LangGraph Harness Inspector** console at the bottom, displaying the live executed LangGraph node path, symbolic CAS root & polynomial comparison (`Target x=7 vs Student x=15`), FSM state transition, and Leakage Guardrail status.
-
----
-
-## 6. Running Locally
+## 4. Running Locally
 
 ```bash
-# 1. Install dependencies
 pnpm install
-
-# 2. Configure LLM API key (optional — falls back to built-in symbolic guided engine if omitted)
-cp .env.example apps/web/.env.local
-# Set GOOGLE_GENERATIVE_AI_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY
-
-# 3. Run unit tests (Vitest)
-pnpm test
-
-# 4. Start development server
-pnpm dev
+cp .env.example apps/web/.env.local   # Add GOOGLE_GENERATIVE_AI_API_KEY (optional: includes symbolic fallback)
+pnpm test                              # Run Vitest suite for @ai-math-tutor/tutor-harness
+pnpm dev                               # Start Next.js at http://localhost:3000
 ```
-
-Open **http://localhost:3000** in your browser.
-
----
-
-## 7. Scaling to Web, iOS, and Android
-
-The monorepo separates the pure-TypeScript AI and math core (`packages/tutor-harness`, ~80% of business logic, zero DOM dependencies) from the presentation layer (`apps/web`), allowing direct code sharing with an **Expo (React Native)** mobile app (`apps/mobile`) for iOS and Android.
-
-See [**`docs/SCALING_ARCHITECTURE.md`**](./docs/SCALING_ARCHITECTURE.md) for the complete 3-week solo-engineer architecture covering native handwriting whiteboards (`@shopify/react-native-skia` + Vision OCR), voice tutoring pipelines, and offline state synchronization.
