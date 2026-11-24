@@ -200,7 +200,7 @@ export function TutorChat({
             type="text"
             value={messageInput}
             onChange={(e) => setMessageInput(e.target.value)}
-            placeholder="Write your next step (e.g. 3x + 12 = 2x + 19) or answer the tutor..."
+            placeholder="Write your next step or answer the tutor"
             autoFocus
             className="flex-1 px-4 py-2.5 rounded-2xl bg-white border border-black/[0.1] text-sm text-[#1D1D1F] placeholder:text-[#86868B] focus:outline-none focus:ring-2 focus:ring-[#0071E3]/25 focus:border-[#0071E3] transition-all"
           />
