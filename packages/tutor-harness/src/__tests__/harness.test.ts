@@ -231,6 +231,8 @@ describe("Neuro-Symbolic Pedagogical Harness (@ai-math-tutor/tutor-harness)", ()
     });
     expect(h3.trace.inputClassification).toBe("HINT_REQUEST");
     expect(h3.nextFsmState.hintLevel).toBe(3);
+    expect(h1.tutorMessage).not.toBe(h2.tutorMessage);
+    expect(h2.tutorMessage).not.toBe(h3.tutorMessage);
     state = h3.nextFsmState;
 
     const h4 = await runTutorHarnessTurn({
