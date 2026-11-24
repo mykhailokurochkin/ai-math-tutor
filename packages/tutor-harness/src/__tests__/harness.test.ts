@@ -201,4 +201,43 @@ describe("Neuro-Symbolic Pedagogical Harness (@ai-math-tutor/tutor-harness)", ()
       expect(check.isFinalSolvedStep).toBe(true);
     }
   });
+
+  it("7. Repeated 'Can you give me a hint?' button clicks escalate Hint Level 1 -> 2 -> 3 -> WORKED_EXAMPLE", async () => {
+    const problem = getTestScenarioProblem();
+    let state = createInitialFSMState(problem);
+
+    const h1 = await runTutorHarnessTurn({
+      problem,
+      fsmState: state,
+      studentMessage: "Can you give me a hint?",
+    });
+    expect(h1.trace.inputClassification).toBe("HINT_REQUEST");
+    expect(h1.nextFsmState.hintLevel).toBe(1);
+    state = h1.nextFsmState;
+
+    const h2 = await runTutorHarnessTurn({
+      problem,
+      fsmState: state,
+      studentMessage: "Can you give me a hint?",
+    });
+    expect(h2.trace.inputClassification).toBe("HINT_REQUEST");
+    expect(h2.nextFsmState.hintLevel).toBe(2);
+    state = h2.nextFsmState;
+
+    const h3 = await runTutorHarnessTurn({
+      problem,
+      fsmState: state,
+      studentMessage: "Can you give me a hint?",
+    });
+    expect(h3.trace.inputClassification).toBe("HINT_REQUEST");
+    expect(h3.nextFsmState.hintLevel).toBe(3);
+    state = h3.nextFsmState;
+
+    const h4 = await runTutorHarnessTurn({
+      problem,
+      fsmState: state,
+      studentMessage: "Can you give me a hint?",
+    });
+    expect(h4.nextFsmState.phase).toBe("WORKED_EXAMPLE");
+  });
 });

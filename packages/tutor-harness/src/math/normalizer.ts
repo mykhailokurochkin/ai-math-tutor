@@ -42,9 +42,12 @@ const HINT_PATTERNS = [
   /дай\s+підказку/i,
   /що\s+робити\s+далі/i,
   /як\s+розкрити\s+дужки/i,
-  /^hint$/i,
-  /^help$/i,
   /не\s+розумію\s+що\s+далі/i,
+  /\bhint\b/i,
+  /\bhelp\b/i,
+  /i'?m\s+stuck/i,
+  /what\s+(do|should)\s+i\s+do/i,
+  /how\s+do\s+i\s+(start|solve|expand)/i,
 ];
 
 /**
