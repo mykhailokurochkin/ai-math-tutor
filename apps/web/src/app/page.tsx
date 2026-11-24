@@ -228,6 +228,27 @@ export default function HomePage() {
 
   const handleRunTestScenario = async (autoInjectWrongStep: boolean) => {
     if (!data) return;
+    const previousData = data;
+
+    if (autoInjectWrongStep) {
+      const optimisticMsg = {
+        id: `optimistic-scenario-${Date.now()}`,
+        role: "student" as const,
+        content: "3x + 4 = 2x + 19",
+        timestamp: new Date().toISOString(),
+      };
+      const welcomeMsg = data.session.chatMessages[0];
+      setData({
+        ...data,
+        session: {
+          ...data.session,
+          chatMessages: welcomeMsg
+            ? [welcomeMsg, optimisticMsg]
+            : [optimisticMsg],
+        },
+      });
+    }
+
     setIsSubmitting(true);
     try {
       const res = await fetch("/api/problems", {
@@ -242,7 +263,11 @@ export default function HomePage() {
       if (res.ok) {
         const json = (await res.json()) as AppStatePayload;
         setData(json);
+      } else {
+        setData(previousData);
       }
+    } catch {
+      setData(previousData);
     } finally {
       setIsSubmitting(false);
     }
