@@ -53,10 +53,10 @@ export function ProgressModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4">
-      <div className="bg-white w-full max-w-4xl max-h-[85vh] rounded-3xl shadow-2xl border border-black/[0.08] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-2 sm:p-4">
+      <div className="bg-white w-full max-w-4xl max-h-[92dvh] sm:max-h-[85vh] rounded-3xl shadow-2xl border border-black/[0.08] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
         {/* Header with Segmented Tabs */}
-        <div className="px-6 py-4 border-b border-black/[0.06] flex flex-wrap items-center justify-between gap-3 bg-[#FBFBFD] shrink-0">
+        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-black/[0.06] flex flex-wrap items-center justify-between gap-2.5 bg-[#FBFBFD] shrink-0">
           <div>
             <h2 className="text-base font-semibold text-[#1D1D1F] tracking-tight">
               Learning Progress & History

@@ -52,6 +52,7 @@ export default function HomePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showInspector, setShowInspector] = useState(false);
   const [showProgressModal, setShowProgressModal] = useState(false);
+  const [mobileTab, setMobileTab] = useState<"board" | "chat">("chat");
 
   const fetchState = useCallback(async (profileId: string) => {
     const res = await fetch(
@@ -238,7 +239,7 @@ export default function HomePage() {
   const isReviewer = data.profile.role === "reviewer";
 
   return (
-    <div className="h-screen overflow-hidden bg-[#F5F5F7] text-[#1D1D1F] flex flex-col">
+    <div className="h-[100dvh] lg:h-screen overflow-hidden bg-[#F5F5F7] text-[#1D1D1F] flex flex-col">
       {/* Top Apple-clean Frosted Navigation Bar */}
       <HeaderBar
         activeProfile={data.profile}
@@ -250,7 +251,7 @@ export default function HomePage() {
       />
 
       {/* Main Content Container — Fixed Viewport Height, Zero Page Growth */}
-      <main className="flex-1 min-h-0 max-w-[1440px] w-full mx-auto px-4 sm:px-6 py-4 flex flex-col gap-3.5 overflow-hidden">
+      <main className="flex-1 min-h-0 max-w-[1440px] w-full mx-auto px-3 sm:px-6 py-3 sm:py-4 flex flex-col gap-3 sm:gap-3.5 overflow-hidden">
         {/* Exclusive Reviewer Toolbar (only visible in Reviewer View) */}
         {isReviewer && (
           <div className="shrink-0">
@@ -266,9 +267,41 @@ export default function HomePage() {
           </div>
         )}
 
+        {/* Mobile-only Tab Switcher (< lg): Full height for Board or Chat without cramping; hidden on Desktop */}
+        <div className="lg:hidden shrink-0 flex items-center justify-center">
+          <div className="w-full inline-grid grid-cols-2 p-1 rounded-2xl bg-black/[0.06]">
+            <button
+              type="button"
+              onClick={() => setMobileTab("board")}
+              className={`py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+                mobileTab === "board"
+                  ? "bg-white text-[#1D1D1F] shadow-sm font-semibold"
+                  : "text-[#6E6E73]"
+              }`}
+            >
+              Solution Board ({data.session.notebookSteps.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setMobileTab("chat")}
+              className={`py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+                mobileTab === "chat"
+                  ? "bg-white text-[#1D1D1F] shadow-sm font-semibold"
+                  : "text-[#6E6E73]"
+              }`}
+            >
+              AI Tutor Chat
+            </button>
+          </div>
+        </div>
+
         {/* Split-Screen Workspace: Left Solution Board + Right Socratic AI Tutor */}
         <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-4 overflow-hidden">
-          <div className="lg:col-span-6 h-full min-h-0 overflow-hidden">
+          <div
+            className={`${
+              mobileTab === "board" ? "block" : "hidden"
+            } lg:block lg:col-span-6 h-full min-h-0 overflow-hidden`}
+          >
             <WorkspacePane
               currentProblem={data.session.currentProblem}
               pendingFollowUpProblem={data.session.pendingFollowUpProblem}
@@ -287,8 +320,13 @@ export default function HomePage() {
             />
           </div>
 
-          <div className="lg:col-span-6 h-full min-h-0 overflow-hidden">
+          <div
+            className={`${
+              mobileTab === "chat" ? "block" : "hidden"
+            } lg:block lg:col-span-6 h-full min-h-0 overflow-hidden`}
+          >
             <TutorChat
+              currentProblem={data.session.currentProblem}
               chatMessages={data.session.chatMessages}
               fsmState={data.session.fsmState}
               isSubmitting={isSubmitting}

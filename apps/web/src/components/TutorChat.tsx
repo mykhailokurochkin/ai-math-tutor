@@ -8,8 +8,12 @@ import {
   Sparkles,
   GraduationCap,
 } from "lucide-react";
-import { RichMathText } from "./MathRenderer";
-import type { FSMState, PedagogicalPhase } from "@ai-math-tutor/tutor-harness";
+import { MathFormula, RichMathText } from "./MathRenderer";
+import type {
+  FSMState,
+  MathProblem,
+  PedagogicalPhase,
+} from "@ai-math-tutor/tutor-harness";
 import type { ChatMessageRecord } from "@/lib/store";
 
 const PHASE_LABELS: Record<
@@ -39,12 +43,14 @@ const PHASE_LABELS: Record<
 };
 
 export function TutorChat({
+  currentProblem,
   chatMessages,
   fsmState,
   isSubmitting,
   onSendMessage,
   onRequestWorkedExample,
 }: {
+  currentProblem?: MathProblem;
   chatMessages: ChatMessageRecord[];
   fsmState: FSMState;
   isSubmitting: boolean;
@@ -81,7 +87,7 @@ export function TutorChat({
   return (
     <div className="bg-white rounded-3xl border border-black/[0.07] shadow-[0_2px_20px_rgba(0,0,0,0.03)] flex flex-col h-full min-h-0 overflow-hidden">
       {/* Chat Top Header */}
-      <div className="px-6 py-3.5 border-b border-black/[0.06] flex flex-wrap items-center justify-between gap-2 bg-[#FBFBFD] shrink-0">
+      <div className="px-4 sm:px-6 py-3 sm:py-3.5 border-b border-black/[0.06] flex flex-wrap items-center justify-between gap-2 bg-[#FBFBFD] shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl bg-[#1D1D1F] text-white flex items-center justify-center shrink-0">
             <GraduationCap className="w-4 h-4" />
@@ -97,10 +103,22 @@ export function TutorChat({
         </div>
       </div>
 
+      {/* Mobile-only compact Active Equation Banner so students always see the equation while chatting */}
+      {currentProblem && (
+        <div className="lg:hidden px-4 py-2 bg-[#F5F5F7]/80 border-b border-black/[0.06] flex items-center justify-between gap-2 shrink-0">
+          <span className="text-[11px] font-medium text-[#6E6E73] shrink-0">
+            Equation:
+          </span>
+          <span className="text-sm font-semibold text-[#1D1D1F] overflow-x-auto">
+            <MathFormula latex={currentProblem.latex} />
+          </span>
+        </div>
+      )}
+
       {/* Chat Messages Stream (Strictly Scrollable Internally) */}
       <div
         ref={scrollRef}
-        className="flex-1 min-h-0 p-5 overflow-y-auto space-y-4 bg-[#FFFFFF]"
+        className="flex-1 min-h-0 p-3.5 sm:p-5 overflow-y-auto space-y-4 bg-[#FFFFFF]"
       >
         {chatMessages.map((msg) => {
           const isTutor = msg.role === "tutor";

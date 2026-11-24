@@ -260,7 +260,7 @@ export function WorkspacePane({
 
             {/* Topic Popover Menu */}
             {openMenu === "topic" && (
-              <div className="absolute left-0 mt-1.5 w-[330px] sm:w-[370px] rounded-2xl bg-white/95 backdrop-blur-xl shadow-[0_14px_40px_rgba(0,0,0,0.14)] border border-black/[0.08] p-2 z-40 space-y-1">
+              <div className="fixed left-3 right-3 top-32 sm:absolute sm:left-0 sm:right-auto sm:top-auto sm:mt-1.5 sm:w-[370px] rounded-2xl bg-white/95 backdrop-blur-xl shadow-[0_14px_40px_rgba(0,0,0,0.14)] border border-black/[0.08] p-2 z-40 space-y-1">
                 <div className="px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-[#86868B]">
                   Select Algebra Topic
                 </div>
@@ -370,7 +370,7 @@ export function WorkspacePane({
 
             {/* Exercise Popover Menu (Shows 4 at a time + Generate 4 More without closing) */}
             {openMenu === "exercise" && (
-              <div className="absolute left-0 sm:left-auto sm:right-0 mt-1.5 w-[340px] sm:w-[410px] rounded-2xl bg-white/95 backdrop-blur-xl shadow-[0_14px_40px_rgba(0,0,0,0.14)] border border-black/[0.08] p-2.5 z-40 space-y-2">
+              <div className="fixed left-3 right-3 top-32 sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-1.5 sm:w-[410px] rounded-2xl bg-white/95 backdrop-blur-xl shadow-[0_14px_40px_rgba(0,0,0,0.14)] border border-black/[0.08] p-2.5 z-40 space-y-2">
                 <div className="flex items-center justify-between px-2 pt-0.5">
                   <span className="text-[11px] font-semibold uppercase tracking-wider text-[#86868B]">
                     {activeTopicMeta.shortTitle} · {topicProblems.length} Exercises
