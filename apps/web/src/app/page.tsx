@@ -78,6 +78,24 @@ export default function HomePage() {
     requestWorkedExample = false
   ) => {
     if (!data) return;
+
+    // Optimistically show the student's message in chat immediately (0ms perceived latency)
+    const previousData = data;
+    const optimisticMsg = {
+      id: `optimistic-stu-${Date.now()}`,
+      role: "student" as const,
+      content: studentMessage,
+      timestamp: new Date().toISOString(),
+    };
+
+    setData({
+      ...data,
+      session: {
+        ...data.session,
+        chatMessages: [...data.session.chatMessages, optimisticMsg],
+      },
+    });
+
     setIsSubmitting(true);
     try {
       const res = await fetch("/api/tutor/step", {
@@ -92,7 +110,11 @@ export default function HomePage() {
       if (res.ok) {
         const json = (await res.json()) as AppStatePayload;
         setData(json);
+      } else {
+        setData(previousData);
       }
+    } catch {
+      setData(previousData);
     } finally {
       setIsSubmitting(false);
     }
