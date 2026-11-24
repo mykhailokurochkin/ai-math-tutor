@@ -25,10 +25,20 @@ export interface PromptContext {
 }
 
 export function resolveActiveProviderInfo(): {
-  provider: "google" | "openai" | "anthropic" | "neuro-symbolic-guided";
+  provider: "groq" | "google" | "openai" | "anthropic" | "neuro-symbolic-guided";
   modelName: string;
 } {
-  const envProvider = (process.env.LLM_PROVIDER ?? "").toLowerCase();
+  const envProvider = (process.env.LLM_PROVIDER ?? "").trim().toLowerCase();
+
+  if (
+    (envProvider === "groq" || !envProvider) &&
+    process.env.GROQ_API_KEY
+  ) {
+    return {
+      provider: "groq",
+      modelName: (process.env.LLM_MODEL || "qwen/qwen3.8-27b").trim(),
+    };
+  }
 
   if (
     (envProvider === "google" || !envProvider) &&
@@ -36,7 +46,7 @@ export function resolveActiveProviderInfo(): {
   ) {
     return {
       provider: "google",
-      modelName: process.env.LLM_MODEL || "gemini-3.5-flash-lite",
+      modelName: (process.env.LLM_MODEL || "gemini-3.5-flash-lite").trim(),
     };
   }
 
@@ -46,7 +56,7 @@ export function resolveActiveProviderInfo(): {
   ) {
     return {
       provider: "openai",
-      modelName: process.env.LLM_MODEL || "gpt-4o-mini",
+      modelName: (process.env.LLM_MODEL || "gpt-4o-mini").trim(),
     };
   }
 
@@ -56,7 +66,7 @@ export function resolveActiveProviderInfo(): {
   ) {
     return {
       provider: "anthropic",
-      modelName: process.env.LLM_MODEL || "claude-3-5-haiku-latest",
+      modelName: (process.env.LLM_MODEL || "claude-3-5-haiku-latest").trim(),
     };
   }
 
@@ -213,6 +223,48 @@ ${ctx.forbiddenReveals.length > 0 ? `FORBIDDEN STRINGS (DO NOT OUTPUT THESE): ${
   ];
 
   try {
+    if (providerInfo.provider === "groq") {
+      const apiKey = (process.env.GROQ_API_KEY ?? "").trim();
+      const res = await fetch(
+        "https://api.groq.com/openai/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: providerInfo.modelName,
+            messages: [
+              { role: "system", content: systemPrompt },
+              ...messages,
+            ],
+            temperature: 0.3,
+            max_tokens: 350,
+          }),
+          signal: AbortSignal.timeout(8000),
+        }
+      );
+
+      if (!res.ok) {
+        throw new Error(`Groq API HTTP ${res.status}`);
+      }
+
+      const data = (await res.json()) as {
+        choices?: Array<{
+          message?: { content?: string };
+        }>;
+      };
+
+      const text = (data.choices?.[0]?.message?.content ?? "")
+        .replace(/<think>[\s\S]*?<\/think>/gi, "")
+        .trim();
+      return {
+        text: text || synthesizeGuidedResponse(ctx),
+        providerLabel: `${providerInfo.provider}:${providerInfo.modelName}`,
+      };
+    }
+
     if (providerInfo.provider === "google") {
       const apiKey = (process.env.GOOGLE_GENERATIVE_AI_API_KEY ?? "").trim();
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(

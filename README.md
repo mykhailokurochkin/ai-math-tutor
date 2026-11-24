@@ -1,6 +1,6 @@
 # AI Math Tutor
 
-An interactive AI mathematics tutor inspired by the classical USSR algebra curriculum. Built as a TypeScript monorepo using **Next.js**, **LangGraph (`@langchain/langgraph`)**, **CortexJS Compute Engine**, **KaTeX**, and **Google Gemini (`gemini-3.5-flash-lite`)**.
+An interactive AI mathematics tutor inspired by the classical USSR algebra curriculum. Built as a TypeScript monorepo using **Next.js**, **LangGraph (`@langchain/langgraph`)**, **CortexJS Compute Engine**, **KaTeX**, and **Groq (`qwen/qwen3.8-27b`)**.
 
 - **Live Demo:** [https://ai-math-tutor-sable.vercel.app](https://ai-math-tutor-sable.vercel.app)
 - **Scaling Plan (Web, iOS & Android):** [`docs/SCALING_ARCHITECTURE.md`](./docs/SCALING_ARCHITECTURE.md)
@@ -50,7 +50,7 @@ The core logic lives in `packages/tutor-harness` with zero DOM dependencies so i
 
 ```bash
 pnpm install
-cp .env.example apps/web/.env.local   # Add GOOGLE_GENERATIVE_AI_API_KEY (optional: includes symbolic fallback)
+cp .env.example apps/web/.env.local   # Add GROQ_API_KEY (optional: includes symbolic fallback)
 pnpm test                              # Run Vitest suite for @ai-math-tutor/tutor-harness
 pnpm dev                               # Start Next.js at http://localhost:3000
 ```
