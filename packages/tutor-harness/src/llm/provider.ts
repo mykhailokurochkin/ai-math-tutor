@@ -1,5 +1,4 @@
 import { generateText } from "ai";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import type {
@@ -214,13 +213,63 @@ ${ctx.forbiddenReveals.length > 0 ? `FORBIDDEN STRINGS (DO NOT OUTPUT THESE): ${
   ];
 
   try {
-    let model;
     if (providerInfo.provider === "google") {
-      const google = createGoogleGenerativeAI({
-        apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+      const apiKey = (process.env.GOOGLE_GENERATIVE_AI_API_KEY ?? "").trim();
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
+        providerInfo.modelName
+      )}:generateContent`;
+
+      const contents = messages.map((m) => ({
+        role: m.role === "assistant" ? "model" : "user",
+        parts: [{ text: m.content }],
+      }));
+
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
+        },
+        body: JSON.stringify({
+          systemInstruction: {
+            parts: [{ text: systemPrompt }],
+          },
+          contents,
+          generationConfig: {
+            temperature: 0.3,
+            maxOutputTokens: 350,
+          },
+        }),
+        signal: AbortSignal.timeout(8000),
       });
-      model = google(providerInfo.modelName);
-    } else if (providerInfo.provider === "openai") {
+
+      if (!res.ok) {
+        throw new Error(`Gemini API HTTP ${res.status}`);
+      }
+
+      const data = (await res.json()) as {
+        candidates?: Array<{
+          content?: {
+            parts?: Array<{ text?: string; thought?: boolean }>;
+          };
+        }>;
+      };
+
+      const parts = data.candidates?.[0]?.content?.parts ?? [];
+      const text = parts
+        .filter((p) => typeof p.text === "string" && !p.thought)
+        .map((p) => p.text)
+        .join("")
+        .trim();
+
+      return {
+        text: text || synthesizeGuidedResponse(ctx),
+        providerLabel: `${providerInfo.provider}:${providerInfo.modelName}`,
+      };
+    }
+
+    let model;
+    if (providerInfo.provider === "openai") {
       const openai = createOpenAI({
         apiKey: process.env.OPENAI_API_KEY,
       });

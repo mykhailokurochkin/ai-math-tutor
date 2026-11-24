@@ -37,7 +37,7 @@ export function HarnessInspector({
             @langchain/langgraph
           </span>
           <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-white/[0.07] text-[#A1A1A6]">
-            LLM: {llmStatus.provider} ({llmStatus.modelName})
+            LLM: {latest?.llmProvider ?? `${llmStatus.provider} (${llmStatus.modelName})`}
           </span>
         </div>
 
