@@ -102,15 +102,10 @@ export function WorkspacePane({
   const exerciseMenuRef = useRef<HTMLDivElement>(null);
   const listScrollRef = useRef<HTMLDivElement>(null);
 
-  // Automatically select the newest step whenever a new step is added
-  const latestStepId =
-    notebookSteps.length > 0
-      ? notebookSteps[notebookSteps.length - 1].id
-      : null;
-
+  // Reset expanded step selection only when switching to a different problem
   useEffect(() => {
-    setSelectedStepId(latestStepId);
-  }, [latestStepId, currentProblem.id]);
+    setSelectedStepId(null);
+  }, [currentProblem.id]);
 
   const activeTopicId: CurriculumTopicId =
     STATIC_CURRICULUM_TOPICS.some((t) => t.id === currentProblem.topicId)
